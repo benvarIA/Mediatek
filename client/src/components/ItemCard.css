@@ -1,0 +1,96 @@
+.item-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  cursor: pointer;
+}
+
+.item-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+  border-color: #444;
+}
+
+.item-card-cover {
+  position: relative;
+  aspect-ratio: 1;
+  background: var(--bg3);
+  overflow: hidden;
+}
+
+.item-card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.item-card-no-cover {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  background: var(--bg3);
+}
+
+.item-card-badge-seen {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--success);
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.item-card-info {
+  padding: 10px 12px;
+  flex: 1;
+}
+
+.item-card-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-card-sub {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text2);
+}
+
+.item-card-support {
+  background: var(--bg3);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 500;
+  color: var(--accent);
+}

@@ -1,0 +1,241 @@
+.detail-loading {
+  text-align: center;
+  padding: 80px;
+  color: var(--text2);
+}
+
+.detail-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.detail-back {
+  color: var(--text2);
+  font-size: 14px;
+  transition: color 0.15s;
+}
+.detail-back:hover { color: var(--text); }
+
+.detail-actions { display: flex; gap: 10px; }
+
+.btn-watched {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+
+.btn-watched:hover { border-color: var(--success); color: var(--success); }
+
+.btn-watched.done {
+  background: rgba(64,176,96,0.12);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.btn-delete {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--text2);
+  transition: all 0.15s;
+}
+.btn-delete:hover { color: var(--danger); background: rgba(232,64,64,0.08); }
+
+/* Hero */
+.detail-hero {
+  display: flex;
+  gap: 36px;
+  margin-bottom: 40px;
+  align-items: flex-start;
+}
+
+.detail-cover {
+  flex-shrink: 0;
+  width: 240px;
+}
+
+.detail-cover img {
+  width: 240px;
+  height: 240px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.detail-no-cover {
+  width: 240px;
+  height: 240px;
+  background: var(--bg3);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80px;
+}
+
+.detail-info { flex: 1; }
+
+.detail-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.badge-support {
+  padding: 4px 10px;
+  background: rgba(232,160,32,0.12);
+  color: var(--accent);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-state {
+  padding: 4px 10px;
+  background: var(--bg3);
+  color: var(--text2);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.badge-seen {
+  padding: 4px 10px;
+  background: rgba(64,176,96,0.12);
+  color: var(--success);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.detail-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+
+.detail-artist {
+  font-size: 18px;
+  color: var(--text2);
+  margin-bottom: 14px;
+}
+
+.detail-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text2);
+  margin-bottom: 14px;
+}
+
+.detail-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.detail-genre {
+  padding: 4px 10px;
+  background: var(--bg3);
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.detail-synopsis {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.6;
+  max-width: 560px;
+}
+
+.detail-cast {
+  font-size: 13px;
+  color: var(--text2);
+  margin-top: 8px;
+}
+
+/* Sections */
+.detail-section { margin-bottom: 32px; }
+
+.detail-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.detail-section-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.btn-edit {
+  font-size: 13px;
+  color: var(--text2);
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+.btn-edit:hover { color: var(--text); border-color: #555; }
+
+/* Tracklist */
+.tracklist { display: flex; flex-direction: column; }
+
+.track {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  transition: background 0.1s;
+}
+
+.track:hover { background: var(--bg2); }
+
+.track-num {
+  width: 22px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--text2);
+  flex-shrink: 0;
+}
+
+.track-title { flex: 1; font-size: 14px; }
+
+.track-dur {
+  font-size: 12px;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Notes */
+.notes-display {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text2);
+  white-space: pre-wrap;
+}
+
+.notes-empty { font-style: italic; }
+
+.notes-edit { display: flex; flex-direction: column; gap: 10px; }
+
+.notes-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.notes-edit-actions .btn-primary,
+.notes-edit-actions .btn-secondary {
+  width: auto;
+  padding: 8px 16px;
+}
