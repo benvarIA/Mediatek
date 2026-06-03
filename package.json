@@ -1,0 +1,14 @@
+{
+  "name": "bibli-analogique",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -n CLIENT,API -c magenta,blue \"npm:dev:client\" \"npm:dev:api\"",
+    "dev:client": "npm --prefix client run dev",
+    "dev:api": "npm --prefix server run dev",
+    "install:all": "npm install && npm --prefix client install && npm --prefix server install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
