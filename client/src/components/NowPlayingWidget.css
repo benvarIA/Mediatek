@@ -100,6 +100,32 @@
 .np-list::-webkit-scrollbar-track { background: transparent; }
 .np-list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; }
 
+.np-loader {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.np-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: np-spin 0.65s linear infinite;
+}
+
+@keyframes np-spin {
+  to { transform: rotate(360deg); }
+}
+
+.np-empty {
+  padding: 18px 16px;
+  font-size: 13px;
+  color: var(--text3);
+  text-align: center;
+}
+
 /* ── Item ────────────────────────────────────────────────── */
 
 .np-item {
