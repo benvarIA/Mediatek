@@ -36,7 +36,7 @@ export default function SurprisePage() {
   return (
     <div className="surprise">
       <div className="surprise-header">
-        <h1>🎲 Qu'est-ce qu'on met ce soir ?</h1>
+        <h1>Qu'est-ce qu'on met ce soir ?</h1>
         <p className="surprise-sub">Laisse le hasard choisir dans ta collection</p>
       </div>
 
@@ -57,18 +57,10 @@ export default function SurprisePage() {
           <option value="">Toutes décennies</option>
           {DECADES.map(d => <option key={d} value={d}>{d}s</option>)}
         </select>
-        <label className="surprise-check">
-          <input
-            type="checkbox"
-            checked={filters.unwatched === true}
-            onChange={e => setFilter('unwatched', e.target.checked ? true : undefined)}
-          />
-          Pas encore vu/écouté
-        </label>
       </div>
 
       <button className="surprise-btn" onClick={draw} disabled={loading}>
-        {loading ? '...' : result ? '🔀 Autre !' : '🎲 Tirer au sort'}
+        {loading ? '...' : result ? 'Autre sélection' : 'Tirer au sort'}
       </button>
 
       {error && <p className="surprise-error">{error}</p>}
@@ -78,12 +70,12 @@ export default function SurprisePage() {
           <div className="surprise-cover">
             {result.cover_url
               ? <img src={result.cover_url} alt={result.title} />
-              : <div className="surprise-no-cover">{result.type === 'music' ? '🎵' : '🎬'}</div>
+              : <div className="surprise-no-cover">{result.type === 'music' ? 'Audio' : 'Film'}</div>
             }
           </div>
           <div className="surprise-info">
             <div className="surprise-support-badge">
-              {result.support === 'cd' ? '💿 CD' : result.support === 'vinyl' ? '🎵 Vinyle' : result.support === 'dvd' ? '📀 DVD' : '🔵 Blu-ray'}
+              {result.support === 'cd' ? 'CD' : result.support === 'vinyl' ? 'Vinyle' : result.support === 'dvd' ? 'DVD' : 'Blu-ray'}
             </div>
             <h2 className="surprise-title">{result.title}</h2>
             {result.artist_or_director && <p className="surprise-artist">{result.artist_or_director}</p>}

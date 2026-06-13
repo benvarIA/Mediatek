@@ -17,7 +17,6 @@ const DEFAULT_FORM: Partial<Item> = {
   artist_or_director: '',
   notes: '',
   state: 'bon_etat',
-  watched_or_listened: false,
 };
 
 export default function AddPage() {
@@ -49,10 +48,22 @@ export default function AddPage() {
     setLookupLoading(true);
     setError('');
     try {
-      const results = form.type === 'music'
-        ? await lookupApi.searchMusic(lookupQuery)
-        : await lookupApi.searchVideo(lookupQuery);
+      let results: any[];
+      if (form.type === 'video') {
+        results = await lookupApi.searchVideo(lookupQuery);
+      } else {
+        // Musique : Discogs en priorité, repli MusicBrainz si vide / token absent
+        try {
+          results = await lookupApi.searchDiscogs(lookupQuery);
+        } catch {
+          results = [];
+        }
+        if (!results.length) {
+          results = await lookupApi.searchMusic(lookupQuery);
+        }
+      }
       setLookupResults(results);
+      if (!results.length) setError('Aucun résultat. Essaie une autre recherche ou saisis à la main.');
     } catch {
       setError('Erreur lors de la recherche');
     } finally {
@@ -63,9 +74,11 @@ export default function AddPage() {
   async function selectLookupResult(result: any) {
     try {
       let detail: any = result;
-      if (form.type === 'music' && result.mbid) {
+      if (result.discogs_id) {
+        detail = await lookupApi.getDiscogsDetail(result.discogs_id);
+      } else if (result.mbid) {
         detail = await lookupApi.getMusicDetail(result.mbid);
-      } else if (form.type === 'video' && result.tmdb_id) {
+      } else if (result.tmdb_id) {
         detail = await lookupApi.getVideoDetail(result.tmdb_id, result.media_type || 'movie');
       }
       setForm(prev => ({
@@ -75,8 +88,25 @@ export default function AddPage() {
         artist_or_director: detail.artist_or_director || prev.artist_or_director,
         cover_url: detail.cover_url || prev.cover_url,
         genres: detail.genres?.length ? detail.genres : (prev.genres || []),
-        label: detail.label,
-        tracklist: detail.tracklist,
+        label: detail.label ?? prev.label,
+        tracklist: detail.tracklist ?? prev.tracklist,
+        duration_total_sec: detail.duration_total_sec ?? prev.duration_total_sec,
+        vinyl_format: detail.vinyl_format ?? prev.vinyl_format,
+        // enrichissement disque
+        catalog_no: detail.catalog_no ?? prev.catalog_no,
+        country: detail.country ?? prev.country,
+        styles: detail.styles ?? prev.styles,
+        barcode: detail.barcode ?? prev.barcode,
+        original_year: detail.original_year ?? prev.original_year,
+        format_detail: detail.format_detail ?? prev.format_detail,
+        credits: detail.credits ?? prev.credits,
+        community: detail.community ?? prev.community,
+        videos: detail.videos ?? prev.videos,
+        description: detail.description ?? prev.description,
+        artist_bio: detail.artist_bio ?? prev.artist_bio,
+        discogs_id: detail.discogs_id ?? prev.discogs_id,
+        back_cover_url: detail.back_cover_url ?? prev.back_cover_url,
+        // vidéo
         synopsis: detail.synopsis,
         duration_min: detail.duration_min,
         cast_list: detail.cast_list,
@@ -119,7 +149,7 @@ export default function AddPage() {
                   className={form.type === t ? 'active' : ''}
                   onClick={() => { setField('type', t); setField('support', t === 'music' ? 'cd' : 'dvd'); }}
                 >
-                  {t === 'music' ? '🎵 Musique' : '🎬 Vidéo'}
+                  {t === 'music' ? 'Musique' : 'Vidéo'}
                 </button>
               ))}
             </div>
@@ -134,7 +164,7 @@ export default function AddPage() {
                   className={form.support === s ? 'active' : ''}
                   onClick={() => setField('support', s)}
                 >
-                  {s === 'cd' ? '💿 CD' : s === 'vinyl' ? '🎵 Vinyle' : s === 'dvd' ? '📀 DVD' : '🔵 Blu-ray'}
+                  {s === 'cd' ? 'CD' : s === 'vinyl' ? 'Vinyle' : s === 'dvd' ? 'DVD' : 'Blu-ray'}
                 </button>
               ))}
             </div>
@@ -142,10 +172,10 @@ export default function AddPage() {
 
           <div className="add-choose-actions">
             <button className="btn-primary" onClick={() => setStep('lookup')}>
-              🔍 Rechercher automatiquement
+              Rechercher automatiquement
             </button>
             <button className="btn-secondary" onClick={() => setStep('form')}>
-              ✏️ Saisie manuelle
+              Saisie manuelle
             </button>
           </div>
         </div>
@@ -170,12 +200,15 @@ export default function AddPage() {
           <div className="lookup-results">
             {lookupResults.map((r, i) => (
               <div key={i} className="lookup-result" onClick={() => selectLookupResult(r)}>
-                {r.cover_url && <img src={r.cover_url} alt="" />}
+                {r.cover_url
+                  ? <img src={r.cover_url} alt="" />
+              : <div className="lookup-result-noimg">{form.type === 'music' ? 'Audio' : 'Film'}</div>}
                 <div>
                   <div className="lookup-result-title">{r.title}</div>
                   <div className="lookup-result-sub">
-                    {r.artist_or_director || r.media_type}
-                    {r.year && ` — ${r.year}`}
+                    {[r.artist_or_director, r.format, r.country, r.label, r.media_type]
+                      .filter(Boolean).slice(0, 2).join(' · ')}
+                    {r.year ? ` — ${r.year}` : ''}
                   </div>
                 </div>
               </div>
@@ -196,7 +229,7 @@ export default function AddPage() {
           <div className="form-preview">
             {form.cover_url
               ? <img src={form.cover_url} alt="" className="form-cover-preview" />
-              : <div className="form-cover-placeholder">{form.type === 'music' ? '🎵' : '🎬'}</div>
+              : <div className="form-cover-placeholder">{form.type === 'music' ? 'Audio' : 'Film'}</div>
             }
             <div className="form-preview-fields">
               <div className="form-group">
@@ -249,25 +282,13 @@ export default function AddPage() {
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>État</label>
-              <select value={form.state || 'bon_etat'} onChange={e => setField('state', e.target.value as State)}>
-                <option value="neuf">Neuf</option>
-                <option value="bon_etat">Bon état</option>
-                <option value="use">Usagé</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Déjà {form.type === 'music' ? 'écouté' : 'vu'} ?</label>
-              <select
-                value={form.watched_or_listened ? 'oui' : 'non'}
-                onChange={e => setField('watched_or_listened', e.target.value === 'oui')}
-              >
-                <option value="non">Non</option>
-                <option value="oui">Oui</option>
-              </select>
-            </div>
+          <div className="form-group">
+            <label>État</label>
+            <select value={form.state || 'bon_etat'} onChange={e => setField('state', e.target.value as State)}>
+              <option value="neuf">Neuf</option>
+              <option value="bon_etat">Bon état</option>
+              <option value="use">Usagé</option>
+            </select>
           </div>
 
           {form.type === 'music' && (
@@ -322,7 +343,7 @@ export default function AddPage() {
           </div>
 
           <button type="submit" className="btn-primary btn-submit" disabled={saving}>
-            {saving ? 'Sauvegarde...' : '✓ Ajouter à la collection'}
+            {saving ? 'Sauvegarde...' : 'Ajouter à la collection'}
           </button>
         </form>
       )}

@@ -5,8 +5,8 @@ import './ItemCard.css';
 const SUPPORT_LABEL: Record<string, string> = {
   cd: 'CD', vinyl: 'Vinyle', dvd: 'DVD', bluray: 'Blu-ray',
 };
-const SUPPORT_ICON: Record<string, string> = {
-  cd: '💿', vinyl: '🎵', dvd: '📀', bluray: '🔵',
+const SUPPORT_SHORT: Record<string, string> = {
+  cd: 'CD', vinyl: 'LP', dvd: 'DVD', bluray: 'BD',
 };
 
 export default function ItemCard({ item }: { item: Item }) {
@@ -15,11 +15,9 @@ export default function ItemCard({ item }: { item: Item }) {
       <div className="item-card-cover">
         {item.cover_url
           ? <img src={item.cover_url} alt={item.title} loading="lazy" />
-          : <div className="item-card-no-cover">{SUPPORT_ICON[item.support]}</div>
+          : <div className="item-card-no-cover">{SUPPORT_SHORT[item.support]}</div>
         }
-        {item.watched_or_listened && (
-          <div className="item-card-badge-seen">✓</div>
-        )}
+
       </div>
       <div className="item-card-info">
         <div className="item-card-title">{item.title}</div>

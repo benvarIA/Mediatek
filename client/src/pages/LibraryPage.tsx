@@ -64,14 +64,6 @@ export default function LibraryPage() {
           <option value="title">Titre A-Z</option>
           <option value="year">Année</option>
         </select>
-        <label className="library-filter-check">
-          <input
-            type="checkbox"
-            checked={filters.unwatched === true}
-            onChange={e => setFilter('unwatched', e.target.checked ? true : undefined)}
-          />
-          Non vu/écouté
-        </label>
       </div>
 
       {loading ? (
@@ -112,7 +104,6 @@ function ListRow({ item }: { item: Item }) {
       <div className="list-row-meta">
         <span className="list-row-support">{SUPPORT_LABEL[item.support]}</span>
         {item.year && <span>{item.year}</span>}
-        {item.watched_or_listened && <span className="list-row-seen">✓</span>}
       </div>
     </a>
   );
