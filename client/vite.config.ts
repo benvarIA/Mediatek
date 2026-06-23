@@ -13,6 +13,10 @@ export default defineConfig(({ mode }) => {
           target: `http://localhost:${env.VITE_API_PORT || '8002'}`,
           changeOrigin: true,
         },
+        '/uploads': {
+          target: `http://localhost:${env.VITE_API_PORT || '8002'}`,
+          changeOrigin: true,
+        },
       },
     },
   };
