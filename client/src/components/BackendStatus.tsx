@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import api from '../api';
 
 type Status = 'ok' | 'down' | 'restarting' | 'unknown';
+
+// App-Manager tourne toujours sur le port 3003 sur le même host.
+const APP_MANAGER_URL = `http://${window.location.hostname}:3003`;
 
 export default function BackendStatus() {
   const [status, setStatus] = useState<Status>('unknown');
@@ -31,12 +35,18 @@ export default function BackendStatus() {
 
   async function restart() {
     setStatus('restarting');
+    const port = window.location.port || '80';
     try {
-      await api.post('/restart', {}, { timeout: 3000 });
+      // Demande à App-Manager de démarrer l'app sur ce port (backend peut être complètement arrêté)
+      await axios.post(
+        `${APP_MANAGER_URL}/api/apps/start-by-port/${port}`,
+        {},
+        { timeout: 5000 },
+      );
     } catch {
-      // expected — le serveur coupe la connexion en redémarrant
+      // Si App-Manager aussi injoignable, on essaie quand même l'endpoint local au cas où
+      try { await api.post('/restart', {}, { timeout: 2000 }); } catch { /* ignoré */ }
     }
-    // Poll accéléré pour détecter le retour
     setRetryCount((c) => c + 1);
   }
 
