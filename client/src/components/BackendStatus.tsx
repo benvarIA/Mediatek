@@ -26,10 +26,10 @@ export default function BackendStatus() {
     }
   }, []);
 
-  // Poll toutes les 10s quand down/restarting, toutes les 30s quand ok
+  // Poll toutes les 30s quand ok, toutes les 15s quand down (évite le spam Vite proxy)
   useEffect(() => {
     check();
-    const interval = setInterval(check, status === 'ok' ? 30_000 : 5_000);
+    const interval = setInterval(check, status === 'ok' ? 30_000 : 15_000);
     return () => clearInterval(interval);
   }, [check, status, retryCount]);
 
