@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import NowPlayingWidget from './NowPlayingWidget';
+import BackendStatus from './BackendStatus';
 import './Layout.css';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -22,6 +23,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </nav>
+      <BackendStatus />
       <main className="main">{children}</main>
     </div>
   );

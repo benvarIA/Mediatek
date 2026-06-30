@@ -41,6 +41,14 @@ app.post('/api/scrobble', async (req, res) => {
   }
 });
 
+app.get('/api/health', (_req, res) => res.json({ ok: true }));
+
+// Redémarrage propre — App Manager détecte la sortie et relance le process.
+app.post('/api/restart', (_req, res) => {
+  res.json({ ok: true });
+  setTimeout(() => process.exit(0), 100);
+});
+
 app.get('/api/scrobble/queue', async (_req, res) => {
   try {
     const { data, status } = await axios.get(
