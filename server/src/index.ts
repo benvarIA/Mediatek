@@ -3,8 +3,12 @@ import fs from 'fs';
 import path from 'path';
 // dotenv ne lit que `.env` par défaut : on charge aussi `.env.local` (prioritaire),
 // en chemin absolu pour être indépendant du dossier de lancement.
-dotenv.config({ path: path.join(__dirname, '..', '.env.local') });
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+// override:true → les valeurs des fichiers .env priment sur l'environnement hérité.
+// Indispensable car App-Manager injecte PORT=<port du frontend> (ex. 3005) pour lancer
+// `npm run dev` ; sans override, l'API écouterait ce port et entrerait en collision avec
+// le client vite. On charge .env d'abord puis .env.local en dernier pour qu'il reste prioritaire.
+dotenv.config({ path: path.join(__dirname, '..', '.env'), override: true });
+dotenv.config({ path: path.join(__dirname, '..', '.env.local'), override: true });
 import express from 'express';
 import cors from 'cors';
 import https from 'https';

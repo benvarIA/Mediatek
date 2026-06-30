@@ -4,8 +4,8 @@ import api from '../api';
 
 type Status = 'ok' | 'down' | 'restarting' | 'unknown';
 
-// App-Manager tourne toujours sur le port 3003 sur le même host.
-const APP_MANAGER_URL = `http://${window.location.hostname}:3003`;
+// App-Manager : UI sur le port 3000 (qui proxy /api → 8000), sur le même host.
+const APP_MANAGER_URL = `http://${window.location.hostname}:3000`;
 
 export default function BackendStatus() {
   const [status, setStatus] = useState<Status>('unknown');
