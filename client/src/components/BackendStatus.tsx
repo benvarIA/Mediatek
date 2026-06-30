@@ -10,7 +10,13 @@ export default function BackendStatus() {
   const check = useCallback(async () => {
     try {
       await api.get('/health', { timeout: 3000 });
-      setStatus('ok');
+      setStatus((prev) => {
+        if (prev === 'restarting' || prev === 'down') {
+          // Backend revenu — recharge la page pour que la bibliothèque se peuple
+          window.location.reload();
+        }
+        return 'ok';
+      });
     } catch {
       setStatus((s) => s === 'restarting' ? 'restarting' : 'down');
     }
