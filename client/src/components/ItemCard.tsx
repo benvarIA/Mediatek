@@ -9,9 +9,13 @@ const SUPPORT_SHORT: Record<string, string> = {
   cd: 'CD', vinyl: 'LP', dvd: 'DVD', bluray: 'BD',
 };
 
-export default function ItemCard({ item }: { item: Item }) {
+export default function ItemCard({ item, index = 0 }: { item: Item; index?: number }) {
   return (
-    <Link to={`/item/${item.id}`} className="item-card">
+    <Link
+      to={`/item/${item.id}`}
+      className="item-card"
+      style={{ '--i': index } as React.CSSProperties}
+    >
       <div className="item-card-cover">
         {item.cover_url
           ? <img src={item.cover_url} alt={item.title} loading="lazy" />

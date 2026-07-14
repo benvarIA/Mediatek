@@ -1,24 +1,34 @@
+/* ── BibliAnalogique — salle de lecture ─────────────────────
+   Vert bibliothèque profond, laiton doré, crème papier.
+   Une collection qu'on consulte le soir, sous la lampe. */
+
 :root {
-  --bg: #11100e;
-  --bg2: #191714;
-  --bg3: #23201b;
-  --surface: rgba(255, 252, 244, 0.055);
-  --surface-strong: rgba(255, 252, 244, 0.09);
-  --border: rgba(238, 226, 202, 0.13);
-  --border-strong: rgba(238, 226, 202, 0.24);
-  --text: #f4eee3;
-  --text2: #a79d8f;
-  --text3: #70685f;
-  --accent: #d6b15e;
-  --accent2: #f0d28b;
-  --danger: #e86d5a;
-  --success: #82b77a;
+  --bg: oklch(0.17 0.022 168);          /* vert-noir, fond de salle */
+  --bg2: oklch(0.21 0.028 165);         /* boiserie */
+  --bg3: oklch(0.26 0.034 162);         /* panneau relevé */
+  --surface: oklch(0.96 0.02 95 / 0.05);
+  --surface-strong: oklch(0.96 0.02 95 / 0.09);
+  --border: oklch(0.88 0.04 95 / 0.14);
+  --border-strong: oklch(0.88 0.04 95 / 0.26);
+  --text: oklch(0.94 0.022 92);         /* crème papier */
+  --text2: oklch(0.76 0.028 100);
+  --text3: oklch(0.60 0.025 105);
+  --accent: oklch(0.78 0.105 84);       /* laiton */
+  --accent2: oklch(0.86 0.105 90);      /* laiton poli */
+  --accent-ink: oklch(0.23 0.03 100);   /* encre sur laiton */
+  --oxblood: oklch(0.46 0.115 28);      /* cuir lie-de-vin */
+  --danger: oklch(0.68 0.14 30);
+  --success: oklch(0.74 0.09 145);
   --radius: 8px;
   --radius-sm: 5px;
   --nav-h: 72px;
-  --shadow: 0 22px 70px rgba(0, 0, 0, 0.38);
+  --shadow: 0 22px 70px oklch(0 0 0 / 0.42);
   --font-ui: "Avenir Next", "Avenir", "Helvetica Neue", sans-serif;
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  --font-display: "EB Garamond", "Iowan Old Style", Palatino, Georgia, serif;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* z-index : dropdown < sticky < toast */
+  --z-sticky: 100;
+  --z-dropdown: 200;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -28,9 +38,11 @@ html { background: var(--bg); }
 body {
   min-height: 100vh;
   background:
-    linear-gradient(90deg, rgba(214,177,94,0.035) 1px, transparent 1px) 0 0 / 56px 56px,
-    radial-gradient(circle at 18% -10%, rgba(214,177,94,0.14), transparent 28rem),
-    linear-gradient(180deg, #151310 0%, #0f0e0c 100%);
+    /* halo de lampe, chaud, en haut */
+    radial-gradient(ellipse 90rem 42rem at 24% -12%, oklch(0.78 0.105 84 / 0.11), transparent 62%),
+    /* reflet vert cuir, bas de page */
+    radial-gradient(ellipse 70rem 40rem at 85% 118%, oklch(0.32 0.06 158 / 0.35), transparent 60%),
+    linear-gradient(180deg, oklch(0.19 0.026 166) 0%, oklch(0.15 0.02 170) 100%);
   color: var(--text);
   font-family: var(--font-ui);
   line-height: 1.5;
@@ -38,7 +50,17 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-#root { min-height: 100vh; }
+/* grain papier, à peine perceptible */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+#root { position: relative; z-index: 1; min-height: 100vh; }
 
 a { color: inherit; text-decoration: none; }
 
@@ -60,13 +82,13 @@ textarea {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: rgba(255, 252, 244, 0.055);
+  background: oklch(0.96 0.02 95 / 0.055);
   color: var(--text);
   font: inherit;
   min-height: 42px;
   padding: 10px 12px;
   outline: none;
-  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color 0.18s var(--ease-out), background 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out);
 }
 
 select {
@@ -90,9 +112,9 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: rgba(214, 177, 94, 0.65);
-  background: rgba(255, 252, 244, 0.08);
-  box-shadow: 0 0 0 3px rgba(214, 177, 94, 0.12);
+  border-color: oklch(0.78 0.105 84 / 0.65);
+  background: oklch(0.96 0.02 95 / 0.08);
+  box-shadow: 0 0 0 3px oklch(0.78 0.105 84 / 0.13);
 }
 
 input::placeholder,
@@ -101,14 +123,14 @@ textarea::placeholder {
 }
 
 ::selection {
-  background: rgba(214, 177, 94, 0.32);
+  background: oklch(0.78 0.105 84 / 0.35);
 }
 
 ::-webkit-scrollbar { width: 9px; }
-::-webkit-scrollbar-track { background: #100f0d; }
+::-webkit-scrollbar-track { background: oklch(0.16 0.02 168); }
 ::-webkit-scrollbar-thumb {
-  background: rgba(238, 226, 202, 0.18);
-  border: 2px solid #100f0d;
+  background: oklch(0.88 0.04 95 / 0.18);
+  border: 2px solid oklch(0.16 0.02 168);
   border-radius: 999px;
 }
 
@@ -123,17 +145,24 @@ textarea::placeholder {
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 700;
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease, opacity 0.18s ease;
+  transition: transform 0.18s var(--ease-out), border-color 0.18s var(--ease-out), background 0.18s var(--ease-out), color 0.18s var(--ease-out), opacity 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out);
 }
 
 .btn-primary {
-  background: var(--accent);
-  color: #15110a;
+  background: linear-gradient(180deg, var(--accent2), var(--accent));
+  border: 1px solid oklch(0.86 0.105 90 / 0.6);
+  color: var(--accent-ink);
+  box-shadow: 0 8px 24px oklch(0.78 0.105 84 / 0.18), inset 0 1px 0 oklch(1 0 0 / 0.25);
 }
 
 .btn-primary:hover {
-  background: var(--accent2);
+  filter: brightness(1.06);
   transform: translateY(-1px);
+  box-shadow: 0 12px 30px oklch(0.78 0.105 84 / 0.24), inset 0 1px 0 oklch(1 0 0 / 0.25);
+}
+
+.btn-primary:active {
+  transform: scale(0.96);
 }
 
 .btn-primary:disabled {
@@ -142,14 +171,27 @@ textarea::placeholder {
 }
 
 .btn-secondary {
-  background: rgba(255, 252, 244, 0.045);
+  background: oklch(0.96 0.02 95 / 0.045);
   border: 1px solid var(--border);
   color: var(--text);
 }
 
 .btn-secondary:hover {
   border-color: var(--border-strong);
-  background: rgba(255, 252, 244, 0.08);
+  background: oklch(0.96 0.02 95 / 0.08);
+}
+
+.btn-secondary:active {
+  transform: scale(0.96);
+}
+
+/* ── Ornement de page de titre : double filet doré ────────── */
+
+.gilt-rule {
+  border: none;
+  height: 5px;
+  border-top: 1px solid oklch(0.78 0.105 84 / 0.55);
+  border-bottom: 1px solid oklch(0.78 0.105 84 / 0.28);
 }
 
 @keyframes page-in {
@@ -157,9 +199,24 @@ textarea::placeholder {
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes cover-in {
-  from { opacity: 0; transform: translateY(18px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+/* mise en rayon : chaque pochette se pose sur l'étagère */
+@keyframes shelve-in {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.97);
+    filter: brightness(0.6);
+  }
+  60% { filter: brightness(1); }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes skeleton-sheen {
+  from { background-position: 180% 0; }
+  to { background-position: -80% 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

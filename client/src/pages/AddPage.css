@@ -10,6 +10,7 @@
   font-size: clamp(40px, 6vw, 76px);
   font-weight: 500;
   line-height: 0.98;
+  text-wrap: balance;
 }
 
 .add-back {
@@ -28,10 +29,10 @@
 .add-error {
   margin-bottom: 16px;
   padding: 12px 14px;
-  border: 1px solid rgba(232, 109, 90, 0.36);
+  border: 1px solid oklch(0.68 0.14 30 / 0.36);
   border-radius: var(--radius-sm);
-  background: rgba(232, 109, 90, 0.08);
-  color: #ff9b8b;
+  background: oklch(0.68 0.14 30 / 0.08);
+  color: oklch(0.80 0.09 30);
   font-size: 14px;
 }
 
@@ -72,7 +73,7 @@
   padding: 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: rgba(255, 252, 244, 0.04);
+  background: oklch(0.96 0.02 95 / 0.04);
   color: var(--text);
   font-weight: 800;
   text-align: left;
@@ -82,14 +83,19 @@
 .add-type-btns button:hover,
 .add-support-btns button:hover {
   border-color: var(--border-strong);
-  background: rgba(255, 252, 244, 0.07);
+  background: oklch(0.96 0.02 95 / 0.07);
   transform: translateY(-1px);
+}
+
+.add-type-btns button:active,
+.add-support-btns button:active {
+  transform: scale(0.96);
 }
 
 .add-type-btns button.active,
 .add-support-btns button.active {
-  border-color: rgba(214, 177, 94, 0.72);
-  background: rgba(214, 177, 94, 0.13);
+  border-color: oklch(0.78 0.105 84 / 0.72);
+  background: oklch(0.78 0.105 84 / 0.13);
   color: var(--accent2);
 }
 
@@ -126,14 +132,14 @@
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: rgba(255, 252, 244, 0.035);
+  background: oklch(0.96 0.02 95 / 0.035);
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
 
 .lookup-result:hover {
-  border-color: rgba(214, 177, 94, 0.55);
-  background: rgba(214, 177, 94, 0.08);
+  border-color: oklch(0.78 0.105 84 / 0.55);
+  background: oklch(0.78 0.105 84 / 0.08);
   transform: translateX(3px);
 }
 
@@ -141,13 +147,16 @@
 .lookup-result-noimg {
   width: 64px;
   height: 64px;
-  border-radius: var(--radius-sm);
+  /* rayon concentrique : extérieur 8px − padding 10px → intérieur minimal */
+  border-radius: 3px;
   background: var(--bg3);
 }
 
 .lookup-result img {
   display: block;
   object-fit: cover;
+  outline: 1px solid rgba(255, 255, 255, 0.1);
+  outline-offset: -1px;
 }
 
 .lookup-result-noimg {
@@ -191,13 +200,15 @@
 .form-cover-preview {
   display: block;
   object-fit: cover;
+  outline: 1px solid rgba(255, 255, 255, 0.1);
+  outline-offset: -1px;
 }
 
 .form-cover-placeholder {
   display: grid;
   place-items: center;
   background:
-    linear-gradient(135deg, rgba(214, 177, 94, 0.14), transparent 48%),
+    linear-gradient(135deg, oklch(0.78 0.105 84 / 0.14), transparent 48%),
     var(--bg3);
   color: var(--text3);
   font-size: 52px;
@@ -231,11 +242,15 @@
   padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: rgba(255, 252, 244, 0.04);
+  background: oklch(0.96 0.02 95 / 0.04);
   color: var(--text2);
   font-size: 13px;
   font-weight: 700;
-  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease, transform 0.18s var(--ease-out);
+}
+
+.genre-chip:active {
+  transform: scale(0.96);
 }
 
 .genre-chip:hover {
@@ -244,8 +259,8 @@
 }
 
 .genre-chip.active {
-  border-color: rgba(214, 177, 94, 0.68);
-  background: rgba(214, 177, 94, 0.14);
+  border-color: oklch(0.78 0.105 84 / 0.68);
+  background: oklch(0.78 0.105 84 / 0.14);
   color: var(--accent2);
 }
 

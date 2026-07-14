@@ -210,7 +210,7 @@ const WIDGET_CSS = `
 .amlr-type {
   display: flex; align-items: center; gap: 7px; padding: 9px 10px; cursor: pointer;
   background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.09);
-  border-radius: 9px; color: #c4cad4; font-size: 12.5px; transition: all .14s ease;
+  border-radius: 9px; color: #c4cad4; font-size: 12.5px; transition: border-color .14s ease, color .14s ease, background .14s ease;
 }
 .amlr-type:hover { border-color: rgba(255,255,255,0.2); color: #e8eef6; }
 .amlr-type-on { border-color: var(--amlr-accent); color: #fff; background: color-mix(in srgb, var(--amlr-accent) 14%, transparent); }

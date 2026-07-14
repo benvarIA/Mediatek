@@ -25,13 +25,26 @@ export default function LibraryPage() {
   return (
     <div className="library">
       <div className="library-header">
-        <h1 className="library-title">
-          Ma Bibliothèque
-          {!loading && <span className="library-count">{items.length}</span>}
-        </h1>
+        <div className="library-heading">
+          <h1 className="library-title">Ma Bibliothèque</h1>
+          <hr className="gilt-rule library-rule" />
+          {!loading && (
+            <p className="library-count">
+              {items.length} {items.length > 1 ? 'pièces au catalogue' : 'pièce au catalogue'}
+            </p>
+          )}
+        </div>
         <div className="library-view-toggle">
-          <button className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')}>⊞</button>
-          <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}>☰</button>
+          <button
+            className={view === 'grid' ? 'active' : ''}
+            onClick={() => setView('grid')}
+            aria-label="Vue grille"
+          >⊞</button>
+          <button
+            className={view === 'list' ? 'active' : ''}
+            onClick={() => setView('list')}
+            aria-label="Vue liste"
+          >☰</button>
         </div>
       </div>
 
@@ -67,30 +80,37 @@ export default function LibraryPage() {
       </div>
 
       {loading ? (
-        <div className="library-loading">Chargement...</div>
+        <div className="library-grid" aria-hidden="true">
+          {Array.from({ length: 12 }, (_, i) => (
+            <div key={i} className="library-skeleton" style={{ '--i': i } as React.CSSProperties}>
+              <div className="library-skeleton-cover" />
+              <div className="library-skeleton-line" />
+              <div className="library-skeleton-line short" />
+            </div>
+          ))}
+        </div>
       ) : items.length === 0 ? (
         <div className="library-empty">
-          <div className="library-empty-icon">📦</div>
-          <p>Aucun élément trouvé.</p>
+          <p>Les rayonnages sont vides.</p>
           <p>Commence par <a href="/add">ajouter quelque chose</a> !</p>
         </div>
       ) : view === 'grid' ? (
         <div className="library-grid">
-          {items.map(item => <ItemCard key={item.id} item={item} />)}
+          {items.map((item, i) => <ItemCard key={item.id} item={item} index={i} />)}
         </div>
       ) : (
         <div className="library-list">
-          {items.map(item => <ListRow key={item.id} item={item} />)}
+          {items.map((item, i) => <ListRow key={item.id} item={item} index={i} />)}
         </div>
       )}
     </div>
   );
 }
 
-function ListRow({ item }: { item: Item }) {
+function ListRow({ item, index }: { item: Item; index: number }) {
   const SUPPORT_LABEL: Record<string, string> = { cd: 'CD', vinyl: 'Vinyle', dvd: 'DVD', bluray: 'Blu-ray' };
   return (
-    <a href={`/item/${item.id}`} className="library-list-row">
+    <a href={`/item/${item.id}`} className="library-list-row" style={{ '--i': index } as React.CSSProperties}>
       <div className="list-row-cover">
         {item.cover_url
           ? <img src={item.cover_url} alt="" />
