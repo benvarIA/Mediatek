@@ -5,3 +5,8 @@ dist/
 .env
 .claude/
 *.log
+
+# Runtime DB (added by sync)
+server/data/*.sqlite
+server/data/*.sqlite-wal
+server/data/*.sqlite-shm
