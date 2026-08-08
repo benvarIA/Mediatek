@@ -1,0 +1,150 @@
+.deck { padding: 12px; display: flex; flex-direction: column; gap: 11px; }
+
+.deck-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 2px; }
+.deck-head h2 { font: inherit; }
+.deck-state { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ── Plateau libre ───────────────────────────────────────────────────── */
+
+.deck-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 30px 18px 26px;
+  text-align: center;
+}
+.platter { width: 108px; height: 108px; opacity: .85; }
+.deck-note { max-width: 34ch; font-size: 13px; line-height: 1.5; color: var(--legend-dim); }
+.deck-link { color: var(--amber); border-bottom: 1px solid rgba(255, 154, 31, .4); }
+.deck-link:hover { border-bottom-color: var(--amber); }
+
+/* ── La fenêtre : un puits de verre profond ──────────────────────────── */
+
+.window {
+  position: relative;
+  padding: 13px;
+  border: 1px solid var(--bezel);
+  border-radius: var(--r-panel);
+  background: linear-gradient(180deg, #0A0B0C, #101214);
+  box-shadow: inset 0 3px 12px rgba(0, 0, 0, .9), 0 1px 0 rgba(255, 255, 255, .045);
+}
+.window::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: var(--r-panel);
+  background: linear-gradient(168deg, rgba(255, 255, 255, .075) 0 26%, transparent 44%);
+}
+.window-sleeve { position: relative; z-index: 1; }
+.window-sleeve .sleeve { box-shadow: inset 0 2px 12px rgba(0, 0, 0, .7); }
+
+.window-id { position: relative; z-index: 1; margin-top: 11px; }
+.window-album { font-size: 16px; font-weight: 500; line-height: 1.2; color: #E8ECEF; }
+.window-artist { margin-top: 2px; font-size: 13px; color: var(--legend-dim); }
+
+.window-gauge {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 11px;
+}
+.window-gauge .readout { margin-left: auto; }
+
+.window-live {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, .06);
+}
+.window-live-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: #F2F5F7;
+}
+.window-live-bar {
+  flex: none;
+  width: 74px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--amber-off);
+  overflow: hidden;
+}
+/* Mise à l'échelle plutôt qu'animation de largeur : animer `width` force un
+   recalcul de mise en page à chaque image. */
+.window-live-bar > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  background: var(--amber);
+  box-shadow: 0 0 6px rgba(255, 154, 31, .5);
+  transition: transform 1s linear;
+}
+
+/* ── La conduite de pistes ───────────────────────────────────────────── */
+
+.conduite { position: relative; z-index: 1; margin-top: 12px; list-style: none; }
+.trow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, .045);
+  font-size: 13px;
+}
+.trow:last-child { border-bottom: 0; }
+.tnum { width: 18px; flex: none; }
+.ttitle { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.ttime { flex: none; font-size: 12px; color: var(--legend-dim); }
+
+.trow-done .ttitle { color: #6E747A; text-decoration: line-through; text-decoration-color: #3E4348; }
+.trow-done .ttime { color: var(--green); }
+.trow-live .tnum { color: var(--amber); }
+.trow-live .ttitle { color: #F2F5F7; }
+.trow-live .ttime { color: var(--amber); }
+.trow-err .ttitle { color: var(--legend-dim); }
+.trow-err .ttime { color: var(--red-text); }
+
+.deck-keys { display: flex; gap: 5px; }
+.deck-keys > * { flex: 1; }
+
+/* ── À suivre ────────────────────────────────────────────────────────── */
+
+.deck-next { border-top: 1px solid rgba(0, 0, 0, .5); box-shadow: 0 -1px 0 rgba(255, 255, 255, .045); padding-top: 11px; }
+.deck-next h3 { font: inherit; margin-bottom: 8px; }
+.deck-next ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.deck-next li { display: flex; align-items: center; gap: 9px; }
+.next-cover { width: 32px; height: 32px; flex: none; padding: 2px; }
+.next-cover .sleeve { border: 0; box-shadow: none; }
+.next-id { flex: 1; min-width: 0; }
+.next-album { display: block; font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.next-artist { display: block; font-size: 12px; color: var(--legend-dim); }
+.next-drop {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-key);
+  color: var(--legend-dim);
+  font-size: 13px;
+  transition: color 120ms var(--ease), background 120ms var(--ease);
+}
+.next-drop:hover { color: var(--red-text); background: rgba(255, 255, 255, .05); }
+
+/* ── Version compacte : en tête de page sur écran étroit ─────────────── */
+
+.deck-compact .window-sleeve { display: none; }
+.deck-compact .conduite { max-height: 232px; overflow-y: auto; }
+.deck-compact .deck-empty { padding: 18px 14px; }
+.deck-compact .platter { width: 62px; height: 62px; }

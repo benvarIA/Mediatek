@@ -12,7 +12,7 @@ const DISCOGS_BASE = 'https://api.discogs.com';
 
 // Évalué à l'appel (l'env est chargé après le hoisting des imports)
 function userAgent() {
-  return `BibliAnalogique/1.0 (+${process.env.APP_CONTACT_EMAIL || 'contact@example.com'})`;
+  return `Mediatek/1.0 (+${process.env.APP_CONTACT_EMAIL || 'contact@example.com'})`;
 }
 
 function discogsHeaders() {
@@ -544,7 +544,7 @@ router.get('/barcode/:code', async (req: Request, res: Response) => {
   try {
     const mbRes = await axios.get(
       `https://musicbrainz.org/ws/2/release/?query=barcode:${code}&fmt=json`,
-      { headers: { 'User-Agent': 'BibliAnalogique/1.0 (benoit.varisellaz@gmail.com)' } }
+      { headers: { 'User-Agent': userAgent() } }
     );
     const releases = mbRes.data.releases;
     if (releases && releases.length > 0) {
@@ -603,7 +603,7 @@ router.get('/music', async (req: Request, res: Response) => {
   try {
     const mbRes = await axios.get(
       `https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(q as string)}&fmt=json&limit=10`,
-      { headers: { 'User-Agent': 'BibliAnalogique/1.0 (benoit.varisellaz@gmail.com)' } }
+      { headers: { 'User-Agent': userAgent() } }
     );
     const releases = mbRes.data.releases || [];
     const results = releases.map((r: any) => ({
@@ -626,7 +626,7 @@ router.get('/music/:mbid', async (req: Request, res: Response) => {
     const [releaseRes, coverRes] = await Promise.allSettled([
       axios.get(
         `https://musicbrainz.org/ws/2/release/${mbid}?inc=recordings+artist-credits+labels&fmt=json`,
-        { headers: { 'User-Agent': 'BibliAnalogique/1.0 (benoit.varisellaz@gmail.com)' } }
+        { headers: { 'User-Agent': userAgent() } }
       ),
       axios.get(`https://coverartarchive.org/release/${mbid}`, { maxRedirects: 5 }),
     ]);

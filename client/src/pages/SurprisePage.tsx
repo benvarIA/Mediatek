@@ -1,33 +1,30 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { itemsApi, type Item, type ItemFilters } from '../api';
+import { Sleeve, SUPPORT_LABEL } from '../components/Plate';
+import PoserKey from '../components/PoserKey';
 import './SurprisePage.css';
 
-const DECADES = [1950,1960,1970,1980,1990,2000,2010,2020];
+const DECADES = [1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020];
+type Filtres = Omit<ItemFilters, 'search' | 'sort'>;
 
 export default function SurprisePage() {
-  const navigate = useNavigate();
   const [result, setResult] = useState<Item | null>(null);
-  const [filters, setFilters] = useState<Omit<ItemFilters, 'search'|'sort'>>({});
+  const [filters, setFilters] = useState<Filtres>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [revealed, setRevealed] = useState(false);
 
-  function setFilter(key: keyof typeof filters, value: any) {
-    setFilters(prev => ({ ...prev, [key]: value || undefined }));
-  }
+  const set = <K extends keyof Filtres>(key: K, value: Filtres[K]) =>
+    setFilters(f => ({ ...f, [key]: value || undefined }));
 
-  async function draw() {
+  async function tirer() {
     setLoading(true);
     setError('');
-    setRevealed(false);
     try {
-      const item = await itemsApi.random(filters);
-      setResult(item);
-      setTimeout(() => setRevealed(true), 100);
+      setResult(await itemsApi.random(filters));
     } catch {
-      setError('Aucun élément trouvé avec ces filtres. Essaie d\'élargir la sélection !');
       setResult(null);
+      setError("Rien ne correspond à cette sélection. Élargis les critères.");
     } finally {
       setLoading(false);
     }
@@ -35,67 +32,75 @@ export default function SurprisePage() {
 
   return (
     <div className="surprise">
-      <div className="surprise-header">
-        <h1>Qu'est-ce qu'on met ce soir ?</h1>
-        <p className="surprise-sub">Laisse le hasard choisir dans ta collection</p>
-      </div>
+      <section className="panel surprise-console">
+        <div className="surprise-title">
+          <h1 className="display">Qu'est-ce qu'on met&nbsp;?</h1>
+          <p className="lg lg-dim">Le hasard pioche dans les rayons</p>
+        </div>
 
-      <div className="surprise-filters">
-        <select value={filters.type || ''} onChange={e => setFilter('type', e.target.value)}>
-          <option value="">Musique ou vidéo</option>
-          <option value="music">Musique</option>
-          <option value="video">Vidéo</option>
-        </select>
-        <select value={filters.support || ''} onChange={e => setFilter('support', e.target.value)}>
-          <option value="">Tous les supports</option>
-          <option value="cd">CD</option>
-          <option value="vinyl">Vinyle</option>
-          <option value="dvd">DVD</option>
-          <option value="bluray">Blu-ray</option>
-        </select>
-        <select value={filters.decade || ''} onChange={e => setFilter('decade', e.target.value ? parseInt(e.target.value) : undefined)}>
-          <option value="">Toutes décennies</option>
-          {DECADES.map(d => <option key={d} value={d}>{d}s</option>)}
-        </select>
-      </div>
+        <div className="surprise-controls">
+          <label className="bank">
+            <span className="lg lg-dim">Nature</span>
+            <select value={filters.type ?? ''} onChange={e => set('type', e.target.value)}>
+              <option value="">Musique ou vidéo</option>
+              <option value="music">Musique</option>
+              <option value="video">Vidéo</option>
+            </select>
+          </label>
+          <label className="bank">
+            <span className="lg lg-dim">Support</span>
+            <select value={filters.support ?? ''} onChange={e => set('support', e.target.value)}>
+              <option value="">Tous</option>
+              <option value="cd">CD</option>
+              <option value="vinyl">33 tours</option>
+              <option value="dvd">DVD</option>
+              <option value="bluray">Blu-ray</option>
+            </select>
+          </label>
+          <label className="bank">
+            <span className="lg lg-dim">Décennie</span>
+            <select
+              value={filters.decade ?? ''}
+              onChange={e => set('decade', e.target.value ? Number(e.target.value) : undefined)}
+            >
+              <option value="">Toutes</option>
+              {DECADES.map(d => <option key={d} value={d}>{d}s</option>)}
+            </select>
+          </label>
+          <button className="key key-primary surprise-draw" onClick={tirer} disabled={loading}>
+            {loading ? 'Tirage…' : result ? 'Un autre' : 'Tirer au sort'}
+          </button>
+        </div>
+      </section>
 
-      <button className="surprise-btn" onClick={draw} disabled={loading}>
-        {loading ? '...' : result ? 'Autre sélection' : 'Tirer au sort'}
-      </button>
-
-      {error && <p className="surprise-error">{error}</p>}
+      {error && <p className="surprise-msg">{error}</p>}
 
       {result && (
-        <div className={`surprise-result ${revealed ? 'revealed' : ''}`}>
-          <div className="surprise-cover">
-            {result.cover_url
-              ? <img src={result.cover_url} alt={result.title} />
-              : <div className="surprise-no-cover">{result.type === 'music' ? 'Audio' : 'Film'}</div>
-            }
+        <article className="panel surprise-result" key={result.id}>
+          <div className="surprise-sleeve well seat">
+            <Sleeve src={result.cover_url} alt={result.title} fallback={SUPPORT_LABEL[result.support]} />
           </div>
-          <div className="surprise-info">
-            <div className="surprise-support-badge">
-              {result.support === 'cd' ? 'CD' : result.support === 'vinyl' ? 'Vinyle' : result.support === 'dvd' ? 'DVD' : 'Blu-ray'}
-            </div>
-            <h2 className="surprise-title">{result.title}</h2>
+
+          <div className="surprise-body">
+            <span className="lg lg-dim">
+              {SUPPORT_LABEL[result.support]}
+              {result.year ? ` · ${result.year}` : ''}
+              {result.type === 'video' && result.duration_min ? ` · ${result.duration_min} min` : ''}
+            </span>
+            <h2 className="display surprise-name">{result.title}</h2>
             {result.artist_or_director && <p className="surprise-artist">{result.artist_or_director}</p>}
-            <div className="surprise-meta">
-              {result.year && <span>{result.year}</span>}
-              {result.type === 'video' && result.duration_min && <span>{result.duration_min} min</span>}
-            </div>
+
             {result.genres.length > 0 && (
-              <div className="surprise-genres">
-                {result.genres.map(g => <span key={g}>{g}</span>)}
-              </div>
+              <p className="surprise-genres">{result.genres.join(' · ')}</p>
             )}
-            {result.synopsis && <p className="surprise-synopsis">{result.synopsis}</p>}
-            <div className="surprise-cta">
-              <button className="btn-primary" onClick={() => navigate(`/item/${result.id}`)}>
-                Voir la fiche
-              </button>
+            {result.synopsis && <p className="prose surprise-synopsis">{result.synopsis}</p>}
+
+            <div className="surprise-keys">
+              <PoserKey item={result} />
+              <Link to={`/item/${result.id}`} className="key">Voir la fiche</Link>
             </div>
           </div>
-        </div>
+        </article>
       )}
     </div>
   );

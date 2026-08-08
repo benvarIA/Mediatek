@@ -11,15 +11,17 @@ dotenv.config({ path: path.join(__dirname, '..', '.env'), override: true });
 dotenv.config({ path: path.join(__dirname, '..', '.env.local'), override: true });
 import express from 'express';
 import cors from 'cors';
-import https from 'https';
-import axios from 'axios';
 import itemsRouter from './routes/items';
 import lookupRouter from './routes/lookup';
+import scrobbleRouter from './routes/scrobble';
+import lastfmRouter from './routes/lastfm';
+import blacklistRouter from './routes/blacklist';
+import { isConfigured } from './lastfm';
+import { start as startScrobbler } from './scrobbler';
 
 const app = express();
 const PORT = process.env.PORT || 8002;
 const uploadsDir = path.join(__dirname, '..', 'uploads');
-const SCROBBLER_URL = process.env.SCROBBLER_URL || 'https://100.117.225.90:3008';
 
 fs.mkdirSync(uploadsDir, { recursive: true });
 
@@ -29,21 +31,9 @@ app.use('/uploads', express.static(uploadsDir));
 
 app.use('/api/items', itemsRouter);
 app.use('/api/lookup', lookupRouter);
-
-// Proxy vers ScrobblerVari — évite le problème de certificat auto-signé côté navigateur
-const scrobblerAgent = new https.Agent({ rejectUnauthorized: false });
-app.post('/api/scrobble', async (req, res) => {
-  try {
-    const { data, status } = await axios.post(
-      `${SCROBBLER_URL}/api/vinyl/queue`,
-      req.body,
-      { httpsAgent: scrobblerAgent, validateStatus: () => true },
-    );
-    res.status(status).json(data);
-  } catch (err: any) {
-    res.status(502).json({ error: 'ScrobblerVari injoignable', detail: err.message });
-  }
-});
+app.use('/api/scrobble', scrobbleRouter);
+app.use('/api/lastfm', lastfmRouter);
+app.use('/api/blacklist', blacklistRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
@@ -53,18 +43,12 @@ app.post('/api/restart', (_req, res) => {
   setTimeout(() => process.exit(0), 100);
 });
 
-app.get('/api/scrobble/queue', async (_req, res) => {
-  try {
-    const { data, status } = await axios.get(
-      `${SCROBBLER_URL}/api/vinyl/queue`,
-      { httpsAgent: scrobblerAgent, validateStatus: () => true },
-    );
-    res.status(status).json(data);
-  } catch (err: any) {
-    res.status(502).json({ error: 'ScrobblerVari injoignable', detail: err.message });
-  }
-});
-
 app.listen(PORT, () => {
-  console.log(`BibliAnalogique API running on http://localhost:${PORT}`);
+  console.log(`Mediatek — API sur http://localhost:${PORT}`);
+  if (!isConfigured()) {
+    console.warn('[lastfm] LASTFM_API_KEY/LASTFM_SECRET absents : le scrobble est désactivé.');
+  }
+  // L'ordonnanceur vit ici, pas dans le serveur de développement du client :
+  // la file avance même quand aucun onglet n'est ouvert.
+  startScrobbler();
 });

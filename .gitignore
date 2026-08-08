@@ -6,7 +6,7 @@ dist/
 .claude/
 *.log
 
-# Runtime DB (added by sync)
-server/data/*.sqlite
-server/data/*.sqlite-wal
-server/data/*.sqlite-shm
+# État d'exécution : base SQLite, session Last.fm, cookies, sauvegardes JSON.
+# Tout le dossier est de la donnée locale — rien n'y a sa place dans git.
+server/data/*
+!server/data/.gitkeep

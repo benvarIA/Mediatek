@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import api from '../api';
+import { Led } from './parts';
 
 type Status = 'ok' | 'down' | 'restarting' | 'unknown';
 
@@ -14,21 +15,19 @@ export default function BackendStatus() {
   const check = useCallback(async () => {
     try {
       await api.get('/health', { timeout: 3000 });
-      setStatus((prev) => {
-        if (prev === 'restarting' || prev === 'down') {
-          // Backend revenu — recharge la page pour que la bibliothèque se peuple
-          window.location.reload();
-        }
+      setStatus(prev => {
+        // Serveur revenu — on recharge pour que les rayons se repeuplent.
+        if (prev === 'restarting' || prev === 'down') window.location.reload();
         return 'ok';
       });
     } catch {
-      setStatus((s) => s === 'restarting' ? 'restarting' : 'down');
+      setStatus(s => (s === 'restarting' ? 'restarting' : 'down'));
     }
   }, []);
 
-  // Poll toutes les 30s quand ok, toutes les 15s quand down (évite le spam Vite proxy)
+  // 30 s quand tout va bien, 15 s quand c'est tombé (évite le spam du proxy Vite).
   useEffect(() => {
-    check();
+    void check();
     const interval = setInterval(check, status === 'ok' ? 30_000 : 15_000);
     return () => clearInterval(interval);
   }, [check, status, retryCount]);
@@ -37,35 +36,25 @@ export default function BackendStatus() {
     setStatus('restarting');
     const port = window.location.port || '80';
     try {
-      // Demande à App-Manager de démarrer l'app sur ce port (backend peut être complètement arrêté)
-      await axios.post(
-        `${APP_MANAGER_URL}/api/apps/start-by-port/${port}`,
-        {},
-        { timeout: 5000 },
-      );
+      // App-Manager peut démarrer l'app même si le serveur est complètement arrêté.
+      await axios.post(`${APP_MANAGER_URL}/api/apps/start-by-port/${port}`, {}, { timeout: 5000 });
     } catch {
-      // Si App-Manager aussi injoignable, on essaie quand même l'endpoint local au cas où
       try { await api.post('/restart', {}, { timeout: 2000 }); } catch { /* ignoré */ }
     }
-    setRetryCount((c) => c + 1);
+    setRetryCount(c => c + 1);
   }
 
   if (status === 'ok' || status === 'unknown') return null;
 
   return (
-    <div className="backend-status-bar">
+    <div className="backend-bar" role="status">
+      <Led on tone={status === 'restarting' ? 'amber' : 'red'} />
       {status === 'restarting' ? (
-        <>
-          <span className="backend-status-dot restarting" />
-          <span>Redémarrage du serveur…</span>
-        </>
+        <p>Redémarrage du serveur…</p>
       ) : (
         <>
-          <span className="backend-status-dot down" />
-          <span>Serveur indisponible</span>
-          <button className="backend-restart-btn" onClick={restart}>
-            Relancer
-          </button>
+          <p>Serveur injoignable. La collection et la platine sont hors ligne.</p>
+          <button className="key" onClick={restart}>Relancer</button>
         </>
       )}
     </div>

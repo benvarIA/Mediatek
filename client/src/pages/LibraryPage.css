@@ -1,260 +1,75 @@
-.library {
-  animation: page-in 0.42s var(--ease-out) both;
-}
+.library { display: flex; flex-direction: column; gap: 9px; }
 
-.library-header {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: end;
-  gap: 24px;
-  margin-bottom: 26px;
-}
+/* ── Le bandeau de commande ──────────────────────────────────────────── */
 
-.library-heading {
+.library-console {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px 20px;
+  padding: 12px 16px;
+}
+.bank { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.bank-legend { display: block; }
+.library-decade { width: 128px; }
+.library-search { flex: 1; min-width: 200px; }
+.library-count { align-items: flex-start; }
+
+/* Recherche, compteur et bascule : ce qui reste visible en toutes circonstances. */
+.console-tete {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px 20px;
+  flex: 1 1 100%;
   min-width: 0;
 }
+/* La bascule n'a de sens que là où le pupitre se replie. */
+.console-bascule { display: none; }
 
-.library-title {
-  font-family: var(--font-display);
-  font-size: clamp(44px, 7vw, 88px);
-  font-weight: 500;
-  letter-spacing: 0.005em;
-  line-height: 1;
-  text-wrap: balance;
-}
-
-.library-rule {
-  width: min(100%, 340px);
-  margin: 14px 0 10px;
-}
-
-.library-count {
-  color: var(--text2);
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-style: italic;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-}
-
-.library-view-toggle {
-  display: inline-flex;
-  gap: 3px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: oklch(0.96 0.02 95 / 0.04);
-}
-
-.library-view-toggle button {
-  width: 40px;
-  height: 36px;
-  border-radius: 999px;
-  color: var(--text2);
-  font-size: 18px;
-  transition: background 0.18s var(--ease-out), color 0.18s var(--ease-out);
-}
-
-.library-view-toggle button.active,
-.library-view-toggle button:hover {
-  background: var(--surface-strong);
-  color: var(--text);
-}
-
-.library-filters {
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr) repeat(4, minmax(128px, auto));
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 34px;
-  padding-bottom: 22px;
-  border-bottom: 1px solid var(--border);
-}
-
-.library-search {
-  min-width: 0;
-}
-
-.library-empty {
-  display: grid;
-  place-items: center;
-  gap: 8px;
-  min-height: 42vh;
-  color: var(--text2);
-  text-align: center;
-}
-
-.library-empty p:first-of-type {
-  font-family: var(--font-display);
-  font-size: 34px;
-  font-style: italic;
-  color: var(--text);
-}
-
-.library-empty a {
-  color: var(--accent2);
-  border-bottom: 1px solid oklch(0.78 0.105 84 / 0.35);
-}
+/* ── Le mur de plaques ───────────────────────────────────────────────── */
 
 .library-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
-  gap: clamp(16px, 2vw, 26px);
-  align-items: start;
-}
-
-/* ── Squelettes de chargement (rayon en attente) ──────────── */
-
-.library-skeleton {
-  animation: shelve-in 0.5s var(--ease-out) both;
-  animation-delay: min(calc(var(--i) * 40ms), 400ms);
-}
-
-.library-skeleton-cover {
-  aspect-ratio: 1;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: linear-gradient(
-    100deg,
-    oklch(0.96 0.02 95 / 0.04) 40%,
-    oklch(0.96 0.02 95 / 0.1) 50%,
-    oklch(0.96 0.02 95 / 0.04) 60%
-  ) 0 0 / 250% 100%;
-  animation: skeleton-sheen 1.6s ease-in-out infinite;
-}
-
-.library-skeleton-line {
-  height: 12px;
-  margin-top: 12px;
-  border-radius: 999px;
-  background: oklch(0.96 0.02 95 / 0.07);
-}
-
-.library-skeleton-line.short {
-  width: 55%;
-  margin-top: 8px;
-  background: oklch(0.96 0.02 95 / 0.045);
-}
-
-/* ── Vue liste : registre de catalogue ────────────────────── */
-
-.library-list {
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--border);
-}
-
-.library-list-row {
-  display: grid;
-  grid-template-columns: 54px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 4px;
-  border-bottom: 1px solid var(--border);
-  animation: shelve-in 0.45s var(--ease-out) both;
-  animation-delay: min(calc(var(--i) * 22ms), 440ms);
-  transition: background 0.16s var(--ease-out), padding 0.16s var(--ease-out);
-}
-
-.library-list-row:hover {
-  background: oklch(0.96 0.02 95 / 0.045);
-  padding-left: 12px;
-  padding-right: 12px;
-}
-
-.list-row-cover {
-  width: 54px;
-  height: 54px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  background: var(--bg3);
-  box-shadow: 0 8px 22px oklch(0 0 0 / 0.25);
-}
-
-.list-row-cover img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-  outline: 1px solid rgba(255, 255, 255, 0.1);
-  outline-offset: -1px;
-}
-
-.list-row-no-cover {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, var(--bg3), oklch(0.2 0.03 164));
-}
-
-.list-row-info {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
+  /* Gouttières fraisées : le châssis se voit entre deux plaques, ce ne sont
+     pas des marges. La densité est celle d'une façade, pas d'une page. */
   gap: 2px;
+  padding: 12px;
+  border-radius: var(--r-panel);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .013) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--panel-hi) 0%, var(--panel) 46%, var(--panel-lo) 100%);
+  box-shadow: var(--relief);
 }
 
-.list-row-title {
-  overflow: hidden;
-  color: var(--text);
-  font-size: 15px;
-  font-weight: 750;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.skel-line { height: 11px; margin-top: 7px; border-radius: 2px; }
+.skel-short { width: 58%; }
 
-.list-row-sub {
-  overflow: hidden;
-  color: var(--text2);
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.list-row-meta {
+.library-msg {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  color: var(--text2);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
+  gap: 14px;
+  padding: 64px 20px;
+  text-align: center;
+  color: var(--legend-dim);
+  border-radius: var(--r-panel);
+  background: var(--well);
+  border: 1px solid var(--bezel);
+  box-shadow: var(--creux);
 }
 
-.list-row-support {
-  color: var(--accent2);
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
+@media (max-width: 860px) {
+  .library-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); padding: 8px; }
+  .library-console { padding: 12px; gap: 12px 16px; }
 
-@media (max-width: 980px) {
-  .library-filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .library-search {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 640px) {
-  .library-header {
-    grid-template-columns: 1fr;
-    align-items: start;
-  }
-
-  .library-title {
-    font-size: 46px;
-  }
-
-  .library-filters {
-    grid-template-columns: 1fr;
-  }
-
-  .library-list-row {
-    grid-template-columns: 48px minmax(0, 1fr);
-  }
-
-  .list-row-meta {
-    grid-column: 2;
-  }
+  /* Replié par défaut : on arrive sur des pochettes, pas sur des réglages.
+     Le nombre de filtres actifs reste annoncé sur la bascule. */
+  .console-bascule { display: inline-flex; flex: none; }
+  .library-console > .bank { display: none; }
+  .console-ouvert > .bank { display: flex; flex: 1 1 240px; }
+  .console-ouvert > .library-decade { flex: 1 1 132px; }
+  .console-tete { flex-wrap: wrap; gap: 10px 14px; }
+  .console-tete .library-search { flex: 1 1 100%; }
+  .console-tete .library-count { flex: none; }
 }

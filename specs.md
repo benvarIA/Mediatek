@@ -1,4 +1,4 @@
-# BibliAnalogique — Specs techniques, UI/UX & fonctionnelles
+# Mediatek — Specs techniques, UI/UX & fonctionnelles
 
 > Gestion de collection physique multimédia : CDs, Vinyles, DVDs et Blu-rays. Cataloguer, explorer, et choisir quoi écouter ou regarder ce soir.
 
@@ -7,11 +7,20 @@
 **Stack :** React 19 + TypeScript + Vite + React Router 7 + Axios (client) · Express 5 + TypeScript + better-sqlite3 (serveur) · APIs **Discogs** (musique, source principale) + MusicBrainz / Cover Art Archive (secours) + TMDB (vidéo)
 **Structure :** monorepo `client/` + `server/`
 
+> ⚠️ **Document partiellement dépassé depuis la fusion avec ScrobblerVari (7 août 2026).**
+> Les sections 2 (architecture), 4 (API) et 6 (UI/UX) ont été refondues : l'app s'appelle
+> désormais **Mediatek**, elle a absorbé l'ordonnanceur de scrobbles, et son identité
+> visuelle a été remplacée. La référence à jour est [`README.md`](README.md) pour
+> l'architecture et l'API, [`DESIGN.md`](DESIGN.md) pour le visuel, [`PRODUCT.md`](PRODUCT.md)
+> pour la vérité produit. Les sections 3 (modèle de données items) et 5 (specs
+> fonctionnelles du catalogue) restent exactes.
+
+
 ---
 
 ## 1. Contexte & Problème
 
-Une collection physique de musique et de films éparpillée sur des étagères est difficile à exploiter : on ne sait plus ce qu'on possède, et choisir « quoi mettre ce soir » prend trop de temps. **BibliAnalogique** est une app web locale pour **cataloguer**, **explorer** et **piocher** dans sa collection, avec toutes les infos et illustrations au même endroit.
+Une collection physique de musique et de films éparpillée sur des étagères est difficile à exploiter : on ne sait plus ce qu'on possède, et choisir « quoi mettre ce soir » prend trop de temps. **Mediatek** est une app web locale pour **cataloguer**, **explorer** et **piocher** dans sa collection, avec toutes les infos et illustrations au même endroit.
 
 Son cas d'usage signature : la page **« Qu'est-ce qu'on met ce soir ? »** — tirage aléatoire avec filtres.
 

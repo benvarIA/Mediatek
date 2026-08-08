@@ -1,621 +1,616 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
-  itemsApi,
-  lookupApi,
-  type EnrichmentSourceKey,
-  type Item,
-  type MusicEditorial,
-  type MusicEditorialSourceKey,
+  itemsApi, lookupApi,
+  type EnrichmentSourceKey, type Item, type MusicEditorial, type MusicEditorialSourceKey,
 } from '../api';
-import { scrobbleAlbum } from '../scrobbler';
+import { Sleeve, SUPPORT_LABEL } from '../components/Plate';
+import PoserKey from '../components/PoserKey';
+import { Led } from '../components/parts';
+import { usePlatine } from '../platine/PlatineContext';
 import './ItemDetailPage.css';
 
-const SUPPORT_LABEL: Record<string, string> = { cd: 'CD', vinyl: 'Vinyle', dvd: 'DVD', bluray: 'Blu-ray' };
-const STATE_LABEL: Record<string, string> = { neuf: 'Neuf', bon_etat: 'Bon état', use: 'Usagé' };
-
-function formatDuration(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-function formatTotal(sec: number) {
-  const h = Math.floor(sec / 3600);
-  const m = Math.round((sec % 3600) / 60);
-  return h > 0 ? `${h} h ${m.toString().padStart(2, '0')}` : `${m} min`;
-}
+const SUPPORT_LONG: Record<string, string> = { cd: 'CD', vinyl: '33 tours', dvd: 'DVD', bluray: 'Blu-ray' };
+const ETAT: Record<string, string> = { neuf: 'Neuf', bon_etat: 'Bon état', use: 'Usagé' };
 
 const nf = new Intl.NumberFormat('fr-FR');
-const MUSIC_SOURCES: { key: MusicEditorialSourceKey; label: string }[] = [
+const duree = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+const total = (s: number) => {
+  const h = Math.floor(s / 3600);
+  const m = Math.round((s % 3600) / 60);
+  return h > 0 ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min`;
+};
+
+const SOURCES_MUSIQUE: { key: MusicEditorialSourceKey; label: string }[] = [
   { key: 'discogs', label: 'Discogs' },
   { key: 'musicbrainz', label: 'MusicBrainz' },
   { key: 'lastfm', label: 'Last.fm' },
-  { key: 'wikipedia', label: 'Wikipedia' },
+  { key: 'wikipedia', label: 'Wikipédia' },
   { key: 'theaudiodb', label: 'TheAudioDB' },
 ];
-const VIDEO_SOURCES: { key: EnrichmentSourceKey; label: string }[] = [
-  { key: 'tmdb', label: 'TMDB' },
-];
-type CoverEditorMode = 'search' | 'url' | 'upload';
+const SOURCES_VIDEO: { key: EnrichmentSourceKey; label: string }[] = [{ key: 'tmdb', label: 'TMDB' }];
+
+type ModeImage = 'recherche' | 'url' | 'fichier';
+type Msg = { ok: boolean; text: string } | null;
+
+function Bloc({ titre, action, children }: { titre: string; action?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="panel bloc">
+      <div className="bloc-tete">
+        <h2 className="headline">{titre}</h2>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Ligne({ legend, children }: { legend: string; children: React.ReactNode }) {
+  if (children == null || children === '' || children === false) return null;
+  return (
+    <div className="fiche-ligne">
+      <span className="lg lg-dim">{legend}</span>
+      <span className="fiche-valeur">{children}</span>
+    </div>
+  );
+}
 
 export default function ItemDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { itemsEnFile } = usePlatine();
+
   const [item, setItem] = useState<Item | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editingNotes, setEditingNotes] = useState(false);
+  const [introuvable, setIntrouvable] = useState(false);
+
   const [notes, setNotes] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [editNotes, setEditNotes] = useState(false);
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [suppr, setSuppr] = useState(false);
+
   const [editorial, setEditorial] = useState<MusicEditorial | null>(null);
   const [editorialLoading, setEditorialLoading] = useState(false);
-  const [enrichmentOpen, setEnrichmentOpen] = useState(false);
-  const [reEnriching, setReEnriching] = useState(false);
-  const [enrichmentMsg, setEnrichmentMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [selectedSources, setSelectedSources] = useState<EnrichmentSourceKey[]>(MUSIC_SOURCES.map((source) => source.key));
-  const [editorialSources, setEditorialSources] = useState<MusicEditorialSourceKey[]>(MUSIC_SOURCES.map((source) => source.key));
-  const [updateImage, setUpdateImage] = useState(true);
-  const [coverEditorOpen, setCoverEditorOpen] = useState(false);
-  const [coverMode, setCoverMode] = useState<CoverEditorMode>('search');
-  const [coverUrlDraft, setCoverUrlDraft] = useState('');
-  const [coverSearchQuery, setCoverSearchQuery] = useState('');
-  const [coverSearchResults, setCoverSearchResults] = useState<any[]>([]);
-  const [coverSearching, setCoverSearching] = useState(false);
-  const [coverSaving, setCoverSaving] = useState(false);
-  const [coverMsg, setCoverMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [editorialSources, setEditorialSources] = useState<MusicEditorialSourceKey[]>(SOURCES_MUSIQUE.map(s => s.key));
+
+  const [enrichOuvert, setEnrichOuvert] = useState(false);
+  const [enrichEnCours, setEnrichEnCours] = useState(false);
+  const [enrichMsg, setEnrichMsg] = useState<Msg>(null);
+  const [sourcesChoisies, setSourcesChoisies] = useState<EnrichmentSourceKey[]>(SOURCES_MUSIQUE.map(s => s.key));
+  const [majImage, setMajImage] = useState(true);
+
+  const [imgOuvert, setImgOuvert] = useState(false);
+  const [imgMode, setImgMode] = useState<ModeImage>('recherche');
+  const [imgUrl, setImgUrl] = useState('');
+  const [imgRequete, setImgRequete] = useState('');
+  const [imgResultats, setImgResultats] = useState<any[]>([]);
+  const [imgCherche, setImgCherche] = useState(false);
+  const [imgEnregistre, setImgEnregistre] = useState(false);
+  const [imgMsg, setImgMsg] = useState<Msg>(null);
 
   useEffect(() => {
     if (!id) return;
-    itemsApi.get(parseInt(id)).then(item => {
-      setItem(item);
-      setNotes(item.notes || '');
-      setLoading(false);
-    });
+    setLoading(true);
+    setIntrouvable(false);
+    itemsApi.get(Number(id))
+      .then(it => { setItem(it); setNotes(it.notes || ''); })
+      .catch(() => setIntrouvable(true))
+      .finally(() => setLoading(false));
   }, [id]);
+
+  // Remise à zéro des panneaux à chaque changement de fiche.
+  useEffect(() => {
+    if (!item) return;
+    setSourcesChoisies(item.type === 'music' ? SOURCES_MUSIQUE.map(s => s.key) : SOURCES_VIDEO.map(s => s.key));
+    setEditorialSources(SOURCES_MUSIQUE.map(s => s.key));
+    setMajImage(true);
+    setEnrichOuvert(false);
+    setEnrichMsg(null);
+    setImgOuvert(false);
+    setImgMode('recherche');
+    setImgUrl(item.cover_url || '');
+    setImgRequete([item.artist_or_director, item.title].filter(Boolean).join(' '));
+    setImgResultats([]);
+    setImgMsg(null);
+  }, [item?.id, item?.type]);
 
   useEffect(() => {
     if (!item || item.type !== 'music' || !item.artist_or_director?.trim() || !item.title.trim()) {
       setEditorial(null);
       return;
     }
-
-    loadEditorial(item, editorialSources);
-  }, [item, editorialSources]);
-
-  useEffect(() => {
-    if (!item) return;
-    setSelectedSources(item.type === 'music'
-      ? MUSIC_SOURCES.map((source) => source.key)
-      : VIDEO_SOURCES.map((source) => source.key)
-    );
-    setEditorialSources(MUSIC_SOURCES.map((source) => source.key));
-    setUpdateImage(true);
-    setEnrichmentOpen(false);
-    setEnrichmentMsg(null);
-    setCoverEditorOpen(false);
-    setCoverMode('search');
-    setCoverUrlDraft(item.cover_url || '');
-    setCoverSearchQuery([item.artist_or_director, item.title].filter(Boolean).join(' '));
-    setCoverSearchResults([]);
-    setCoverMsg(null);
-  }, [item?.id, item?.type]);
-
-  function loadEditorial(currentItem: Item, sources: MusicEditorialSourceKey[]) {
-    if (currentItem.type !== 'music' || !currentItem.artist_or_director?.trim() || !currentItem.title.trim()) {
-      setEditorial(null);
-      return;
-    }
-
     setEditorialLoading(true);
     lookupApi.getMusicEditorial({
-      artist: currentItem.artist_or_director,
-      album: currentItem.title,
-      discogs_id: currentItem.discogs_id ?? null,
-      year: currentItem.year ?? null,
-      sources,
+      artist: item.artist_or_director,
+      album: item.title,
+      discogs_id: item.discogs_id ?? null,
+      year: item.year ?? null,
+      sources: editorialSources,
     })
       .then(setEditorial)
       .catch(() => setEditorial(null))
       .finally(() => setEditorialLoading(false));
-  }
+  }, [item, editorialSources]);
 
-  async function saveNotes() {
+  async function sauverNotes() {
     if (!item) return;
-    setSaving(true);
-    const updated = await itemsApi.update(item.id, { notes });
-    setItem(updated);
-    setEditingNotes(false);
-    setSaving(false);
-  }
-
-  const [scrobbling, setScrobbling] = useState(false);
-  const [scrobbleMsg, setScrobbleMsg] = useState<{ ok: boolean; text: string } | null>(null);
-
-  async function handleScrobble() {
-    if (!item) return;
-    setScrobbling(true);
-    setScrobbleMsg(null);
-    const r = await scrobbleAlbum(item);
-    if (r.ok) {
-      const heure = r.finishAt
-        ? new Date(r.finishAt * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-        : null;
-      setScrobbleMsg({
-        ok: true,
-        text: r.duplicate
-          ? 'Déjà dans la file ScrobblerVari.'
-          : `Ajouté à la file ScrobblerVari${r.trackCount ? ` — ${r.trackCount} pistes` : ''}${heure ? `, fin vers ${heure}` : ''}.`,
-      });
-    } else {
-      setScrobbleMsg({ ok: false, text: r.error || 'Échec du scrobble' });
-    }
-    setScrobbling(false);
-  }
-
-  async function handleDelete() {
-    if (!item) return;
-    if (!window.confirm(`Supprimer "${item.title}" de la collection ?`)) return;
-    setDeleting(true);
-    await itemsApi.delete(item.id);
-    navigate('/');
-  }
-
-  function toggleSource(source: EnrichmentSourceKey) {
-    setSelectedSources((prev) => (
-      prev.includes(source) ? prev.filter((entry) => entry !== source) : [...prev, source]
-    ));
-  }
-
-  async function handleReEnrich() {
-    if (!item || !selectedSources.length) return;
-    setReEnriching(true);
-    setEnrichmentMsg(null);
+    setSavingNotes(true);
     try {
-      const updated = await itemsApi.reEnrich(item.id, { sources: selectedSources, updateImage });
-      setItem(updated);
-      if (updated.type === 'music') {
-        const editorialSources = selectedSources.filter((source): source is MusicEditorialSourceKey => source !== 'tmdb');
-        setEditorialSources(editorialSources.length ? editorialSources : MUSIC_SOURCES.map((source) => source.key));
-      }
-      setEnrichmentMsg({
-        ok: true,
-        text: updateImage
-          ? 'La fiche a été réenrichie, image incluse.'
-          : 'La fiche a été réenrichie sans toucher à l’image.',
-      });
-      setEnrichmentOpen(false);
-    } catch {
-      setEnrichmentMsg({ ok: false, text: 'Le réenrichissement a échoué.' });
+      setItem(await itemsApi.update(item.id, { notes }));
+      setEditNotes(false);
     } finally {
-      setReEnriching(false);
+      setSavingNotes(false);
     }
   }
 
-  async function handleCoverSearch() {
-    if (!item || !coverSearchQuery.trim()) return;
-    setCoverSearching(true);
-    setCoverMsg(null);
+  async function supprimer() {
+    if (!item) return;
+    if (!window.confirm(`Retirer « ${item.title} » de la collection ? C'est définitif.`)) return;
+    setSuppr(true);
     try {
-      let results: any[] = [];
+      await itemsApi.delete(item.id);
+      navigate('/');
+    } catch {
+      setSuppr(false);
+    }
+  }
+
+  async function reenrichir() {
+    if (!item || !sourcesChoisies.length) return;
+    setEnrichEnCours(true);
+    setEnrichMsg(null);
+    try {
+      const maj = await itemsApi.reEnrich(item.id, { sources: sourcesChoisies, updateImage: majImage });
+      setItem(maj);
+      if (maj.type === 'music') {
+        const s = sourcesChoisies.filter((k): k is MusicEditorialSourceKey => k !== 'tmdb');
+        setEditorialSources(s.length ? s : SOURCES_MUSIQUE.map(x => x.key));
+      }
+      setEnrichMsg({
+        ok: true,
+        text: majImage ? 'Fiche réenrichie, image comprise.' : "Fiche réenrichie, l'image n'a pas bougé.",
+      });
+      setEnrichOuvert(false);
+    } catch {
+      setEnrichMsg({ ok: false, text: "Le réenrichissement a échoué. Les sources n'ont rien renvoyé." });
+    } finally {
+      setEnrichEnCours(false);
+    }
+  }
+
+  async function chercherImage() {
+    if (!item || !imgRequete.trim()) return;
+    setImgCherche(true);
+    setImgMsg(null);
+    try {
+      let r: any[] = [];
       if (item.type === 'music') {
-        try {
-          results = await lookupApi.searchDiscogs(coverSearchQuery);
-        } catch {
-          results = [];
-        }
-        if (!results.length) {
-          results = await lookupApi.searchMusic(coverSearchQuery);
-        }
+        try { r = await lookupApi.searchDiscogs(imgRequete); } catch { r = []; }
+        if (!r.length) r = await lookupApi.searchMusic(imgRequete);
       } else {
-        results = await lookupApi.searchVideo(coverSearchQuery);
+        r = await lookupApi.searchVideo(imgRequete);
       }
-      setCoverSearchResults(results.filter((result) => result.cover_url));
-      if (!results.some((result) => result.cover_url)) {
-        setCoverMsg({ ok: false, text: 'Aucune image trouvée avec cette recherche.' });
-      }
+      const avecImage = r.filter(x => x.cover_url);
+      setImgResultats(avecImage);
+      if (!avecImage.length) setImgMsg({ ok: false, text: 'Aucune image pour cette recherche.' });
     } catch {
-      setCoverMsg({ ok: false, text: 'La recherche d’image a échoué.' });
+      setImgMsg({ ok: false, text: "La recherche d'image a échoué." });
     } finally {
-      setCoverSearching(false);
+      setImgCherche(false);
     }
   }
 
-  async function saveCoverUrl(url: string) {
+  async function poserImage(url: string) {
     if (!item || !url.trim()) return;
-    setCoverSaving(true);
-    setCoverMsg(null);
+    setImgEnregistre(true);
+    setImgMsg(null);
     try {
-      const updated = await itemsApi.update(item.id, { cover_url: url.trim() });
-      setItem(updated);
-      setCoverUrlDraft(updated.cover_url || '');
-      setCoverMsg({ ok: true, text: 'L’image de la fiche a été mise à jour.' });
-      setCoverEditorOpen(false);
+      const maj = await itemsApi.update(item.id, { cover_url: url.trim() });
+      setItem(maj);
+      setImgUrl(maj.cover_url || '');
+      setImgMsg({ ok: true, text: 'Image mise à jour.' });
+      setImgOuvert(false);
     } catch {
-      setCoverMsg({ ok: false, text: 'La mise à jour de l’image a échoué.' });
+      setImgMsg({ ok: false, text: "La mise à jour de l'image a échoué." });
     } finally {
-      setCoverSaving(false);
+      setImgEnregistre(false);
     }
   }
 
-  async function handleCoverUpload(file: File | null) {
+  async function envoyerImage(file: File | null) {
     if (!item || !file) return;
-    setCoverSaving(true);
-    setCoverMsg(null);
+    setImgEnregistre(true);
+    setImgMsg(null);
     try {
-      const updated = await itemsApi.uploadCover(item.id, file);
-      setItem(updated);
-      setCoverUrlDraft(updated.cover_url || '');
-      setCoverMsg({ ok: true, text: 'L’image envoyée a été enregistrée.' });
-      setCoverEditorOpen(false);
+      const maj = await itemsApi.uploadCover(item.id, file);
+      setItem(maj);
+      setImgUrl(maj.cover_url || '');
+      setImgMsg({ ok: true, text: 'Image enregistrée.' });
+      setImgOuvert(false);
     } catch {
-      setCoverMsg({ ok: false, text: 'L’envoi de l’image a échoué.' });
+      setImgMsg({ ok: false, text: "L'envoi de l'image a échoué." });
     } finally {
-      setCoverSaving(false);
+      setImgEnregistre(false);
     }
   }
 
-  if (loading) return <div className="detail-loading">Chargement...</div>;
-  if (!item) return <div className="detail-loading">Introuvable.</div>;
+  if (loading) {
+    return (
+      <div className="panel fiche-attente"><p className="lg lg-dim">Lecture de la fiche…</p></div>
+    );
+  }
+  if (introuvable || !item) {
+    return (
+      <div className="panel fiche-attente">
+        <p className="headline">Fiche introuvable</p>
+        <Link to="/" className="key">Retour aux rayons</Link>
+      </div>
+    );
+  }
 
-  const mainCredits = editorial?.main_credits?.length
+  const surLaPlatine = itemsEnFile.has(item.id);
+  const creditsPrincipaux = editorial?.main_credits?.length
     ? editorial.main_credits
-    : (item.credits || [])
-      .filter((credit) => ['Compositeur', 'Paroles', 'Producteur', 'Co-producteur', 'Chant', 'Featuring', 'Mixage', 'Mastering'].includes(credit.role))
+    : (item.credits ?? [])
+      .filter(c => ['Compositeur', 'Paroles', 'Producteur', 'Co-producteur', 'Chant', 'Featuring', 'Mixage', 'Mastering'].includes(c.role))
       .slice(0, 6);
-  const displayedRating = editorial?.rating || (
-    item.community?.rating
-      ? {
-        source: 'Discogs',
-        label: 'Note communauté',
-        value: item.community.rating,
-        scale: 5,
-        count: item.community.rating_count ?? null,
-        url: item.discogs_id ? `https://www.discogs.com/release/${item.discogs_id}` : null,
-      }
-      : null
-  );
-  const videos = (item.videos || []).filter((video, index, list) =>
-    list.findIndex((candidate) => candidate.url === video.url) === index
-  );
-  const availableSources = item.type === 'music' ? MUSIC_SOURCES : VIDEO_SOURCES;
+
+  const note = editorial?.rating ?? (item.community?.rating ? {
+    source: 'Discogs',
+    label: 'Note de la communauté',
+    value: item.community.rating,
+    scale: 5,
+    count: item.community.rating_count ?? null,
+    url: item.discogs_id ? `https://www.discogs.com/release/${item.discogs_id}` : null,
+  } : null);
+
+  const videos = (item.videos ?? []).filter((v, i, l) => l.findIndex(c => c.url === v.url) === i);
+  const sourcesDispo = item.type === 'music' ? SOURCES_MUSIQUE : SOURCES_VIDEO;
+  const pressage = item.type === 'music' && (item.format_detail || item.catalog_no || item.country || item.barcode || item.original_year);
 
   return (
-    <div className="detail">
-      <div className="detail-nav">
-        <Link to="/" className="detail-back">← Bibliothèque</Link>
-        <div className="detail-actions">
-          {item.type === 'music' && (
-            <button className="btn-scrobble" onClick={handleScrobble} disabled={scrobbling}>
-              {scrobbling ? 'Envoi…' : 'Scrobbler sur Last.fm'}
-            </button>
-          )}
-          <button className="btn-edit" onClick={() => setEnrichmentOpen((open) => !open)}>
+    <div className="fiche">
+      <div className="fiche-nav">
+        <Link to="/" className="lg lg-dim fiche-retour">← Rayons</Link>
+        <div className="fiche-nav-keys">
+          <button className="key" onClick={() => setEnrichOuvert(o => !o)} aria-expanded={enrichOuvert}>
             Réenrichir
           </button>
-          <button className="btn-delete" onClick={handleDelete} disabled={deleting}>
-            Supprimer
+          <button className="key key-rec" onClick={supprimer} disabled={suppr}>
+            {suppr ? 'Retrait…' : 'Retirer de la collection'}
           </button>
         </div>
       </div>
 
-      {scrobbleMsg && (
-        <div className={`scrobble-msg ${scrobbleMsg.ok ? 'ok' : 'err'}`}>
-          {scrobbleMsg.ok ? '✓ ' : '⚠ '}{scrobbleMsg.text}
-        </div>
-      )}
+      {enrichMsg && <p className={`fiche-msg${enrichMsg.ok ? ' msg-ok' : ' msg-err'}`} role="status">{enrichMsg.text}</p>}
+      {imgMsg && <p className={`fiche-msg${imgMsg.ok ? ' msg-ok' : ' msg-err'}`} role="status">{imgMsg.text}</p>}
 
-      {enrichmentMsg && (
-        <div className={`scrobble-msg ${enrichmentMsg.ok ? 'ok' : 'err'}`}>
-          {enrichmentMsg.ok ? '✓ ' : '⚠ '}{enrichmentMsg.text}
-        </div>
-      )}
-
-      {coverMsg && (
-        <div className={`scrobble-msg ${coverMsg.ok ? 'ok' : 'err'}`}>
-          {coverMsg.ok ? '✓ ' : '⚠ '}{coverMsg.text}
-        </div>
-      )}
-
-      {enrichmentOpen && (
-        <div className="detail-enrichment-panel">
-          <div className="detail-enrichment-head">
-            <h2 className="detail-section-title">Réenrichir cette fiche</h2>
-            <button className="btn-secondary detail-enrichment-close" onClick={() => setEnrichmentOpen(false)}>
-              Fermer
-            </button>
+      {enrichOuvert && (
+        <section className="panel bloc">
+          <div className="bloc-tete">
+            <h2 className="headline">Réenrichir la fiche</h2>
+            <button className="key" onClick={() => setEnrichOuvert(false)}>Fermer</button>
           </div>
-          <p className="detail-prose">
-            Choisis les sources à relancer et indique si la pochette peut aussi être remplacée.
+          <p className="prose bloc-note">
+            Relance les sources choisies et réécrit les métadonnées. Les notes personnelles ne sont jamais touchées.
           </p>
-          <div className="detail-enrichment-sources">
-            {availableSources.map((source) => (
-              <label key={source.key} className={`detail-source-toggle ${selectedSources.includes(source.key) ? 'active' : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={selectedSources.includes(source.key)}
-                  onChange={() => toggleSource(source.key)}
-                />
-                <span>{source.label}</span>
-              </label>
+          <div className="chips">
+            {sourcesDispo.map(s => (
+              <button
+                key={s.key}
+                type="button"
+                className={`chip${sourcesChoisies.includes(s.key) ? ' chip-on' : ''}`}
+                aria-pressed={sourcesChoisies.includes(s.key)}
+                onClick={() => setSourcesChoisies(p =>
+                  p.includes(s.key) ? p.filter(k => k !== s.key) : [...p, s.key])}
+              >{s.label}</button>
             ))}
           </div>
-          <label className="detail-image-toggle">
-            <input
-              type="checkbox"
-              checked={updateImage}
-              onChange={(e) => setUpdateImage(e.target.checked)}
-            />
-            <span>Autoriser la mise à jour de l’image</span>
+          <label className="fiche-coche">
+            <input type="checkbox" checked={majImage} onChange={e => setMajImage(e.target.checked)} />
+            <span className="lg lg-dim">Autoriser le remplacement de l'image</span>
           </label>
-          <div className="detail-enrichment-actions">
-            <button
-              className="btn-primary"
-              onClick={handleReEnrich}
-              disabled={reEnriching || selectedSources.length === 0}
-            >
-              {reEnriching ? 'Réenrichissement...' : 'Lancer le réenrichissement'}
-            </button>
-          </div>
-        </div>
+          <button
+            className="key key-primary"
+            onClick={reenrichir}
+            disabled={enrichEnCours || !sourcesChoisies.length}
+          >
+            {enrichEnCours ? 'Réenrichissement…' : 'Lancer'}
+          </button>
+        </section>
       )}
 
-      <div className="detail-hero">
-        <div className="detail-cover">
-          {item.cover_url
-            ? <img src={item.cover_url} alt={item.title} />
-            : <div className="detail-no-cover">{item.type === 'music' ? 'Audio' : 'Film'}</div>
-          }
-          <button className="btn-edit detail-cover-edit" onClick={() => setCoverEditorOpen((open) => !open)}>
-            Modifier l’image
+      {/* ── Fenêtre principale ────────────────────────────────────────── */}
+      <section className="panel fiche-hero">
+        <div className="fiche-cover">
+          <div className="well fiche-cover-well">
+            <Sleeve src={item.cover_url} alt={item.title} fallback={SUPPORT_LABEL[item.support]} />
+          </div>
+          <button className="key" onClick={() => setImgOuvert(o => !o)} aria-expanded={imgOuvert}>
+            Changer l'image
           </button>
         </div>
-        <div className="detail-info">
-          <div className="detail-badges">
-            <span className="badge-support">{SUPPORT_LABEL[item.support]}</span>
-            <span className="badge-state">{STATE_LABEL[item.state]}</span>
 
-          </div>
-          <h1 className="detail-title">{item.title}</h1>
-          {item.artist_or_director && (
-            <p className="detail-artist">{item.artist_or_director}</p>
-          )}
-          <div className="detail-meta-row">
-            {item.year && (
-              <span>
-                {item.type === 'music' ? (item.original_year || item.year) : item.year}
-              </span>
+        <div className="fiche-id">
+          <div className="fiche-badges">
+            <span className="lg lg-dim">{SUPPORT_LONG[item.support]}</span>
+            <span className="lg lg-dim">·</span>
+            <span className="lg lg-dim">{ETAT[item.state]}</span>
+            {surLaPlatine && (
+              <span className="fiche-live"><Led on /><span className="lg lg-amber">Sur la platine</span></span>
             )}
-            {item.type === 'video' && item.duration_min && <span>{item.duration_min} min</span>}
-            {item.type === 'music' && item.duration_total_sec
-              ? <span>{formatTotal(item.duration_total_sec)}</span> : null}
+          </div>
+
+          <h1 className="display fiche-titre">{item.title}</h1>
+          {item.artist_or_director && <p className="fiche-artiste">{item.artist_or_director}</p>}
+
+          <div className="fiche-meta">
+            {item.year && <span className="num">{item.type === 'music' ? (item.original_year || item.year) : item.year}</span>}
+            {item.type === 'video' && item.duration_min && <span className="num">{item.duration_min} min</span>}
+            {item.type === 'music' && item.duration_total_sec ? <span className="num">{total(item.duration_total_sec)}</span> : null}
             {item.label && <span>{item.label}</span>}
-            {item.type === 'video' && item.country && <span>{item.country}</span>}
             {item.language && <span>{item.language}</span>}
           </div>
-          {(item.genres.length > 0 || (item.styles && item.styles.length > 0)) && (
-            <div className="detail-genres">
-              {item.genres.map(g => <span key={g} className="detail-genre">{g}</span>)}
-              {item.styles?.map(s => <span key={s} className="detail-genre detail-style">{s}</span>)}
-            </div>
-          )}
-          {item.synopsis && <p className="detail-synopsis">{item.synopsis}</p>}
-          {item.cast_list && item.cast_list.length > 0 && (
-            <p className="detail-cast">Avec : {item.cast_list.join(', ')}</p>
-          )}
-        </div>
-      </div>
 
-      {coverEditorOpen && (
-        <div className="detail-cover-panel">
-          <div className="detail-enrichment-head">
-            <h2 className="detail-section-title">Image de la fiche</h2>
-            <button className="btn-secondary detail-enrichment-close" onClick={() => setCoverEditorOpen(false)}>
-              Fermer
-            </button>
+          {(item.genres.length > 0 || (item.styles?.length ?? 0) > 0) && (
+            <p className="fiche-genres">
+              {[...item.genres, ...(item.styles ?? [])].join(' · ')}
+            </p>
+          )}
+
+          {item.synopsis && <p className="prose fiche-synopsis">{item.synopsis}</p>}
+          {item.cast_list?.length ? <p className="fiche-casting">Avec {item.cast_list.join(', ')}</p> : null}
+
+          <div className="fiche-action"><PoserKey item={item} /></div>
+        </div>
+      </section>
+
+      {imgOuvert && (
+        <section className="panel bloc">
+          <div className="bloc-tete">
+            <h2 className="headline">Image de la fiche</h2>
+            <button className="key" onClick={() => setImgOuvert(false)}>Fermer</button>
           </div>
-          <div className="detail-cover-modes">
-            {([
-              ['search', 'Recherche'],
-              ['url', 'URL'],
-              ['upload', 'Upload'],
-            ] as const).map(([mode, label]) => (
+
+          <div className="selector fiche-img-modes">
+            {([['recherche', 'Recherche'], ['url', 'URL'], ['fichier', 'Fichier']] as const).map(([m, l]) => (
               <button
-                key={mode}
-                className={`detail-cover-mode ${coverMode === mode ? 'active' : ''}`}
-                onClick={() => setCoverMode(mode)}
+                key={m}
+                type="button"
+                className={`position${imgMode === m ? ' position-sel' : ''}`}
+                aria-pressed={imgMode === m}
+                onClick={() => setImgMode(m)}
               >
-                {label}
+                <span className={`led${imgMode === m ? ' led-on' : ''}`} aria-hidden="true" />{l}
               </button>
             ))}
           </div>
 
-          {coverMode === 'search' && (
+          {imgMode === 'recherche' && (
             <>
-              <div className="lookup-search detail-cover-search">
+              <div className="add-search">
                 <input
-                  type="text"
-                  value={coverSearchQuery}
-                  onChange={(e) => setCoverSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleCoverSearch()}
-                  placeholder="Titre, artiste, réalisateur..."
+                  value={imgRequete}
+                  onChange={e => setImgRequete(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && chercherImage()}
+                  placeholder="Titre, artiste, réalisateur…"
+                  aria-label="Recherche d'image"
                 />
-                <button className="btn-primary" onClick={handleCoverSearch} disabled={coverSearching}>
-                  {coverSearching ? 'Recherche...' : 'Chercher'}
+                <button className="key key-primary" onClick={chercherImage} disabled={imgCherche}>
+                  {imgCherche ? 'Recherche…' : 'Chercher'}
                 </button>
               </div>
-              <div className="detail-cover-results">
-                {coverSearchResults.map((result, index) => (
-                  <button
-                    key={`${result.cover_url}-${index}`}
-                    className="detail-cover-result"
-                    onClick={() => saveCoverUrl(result.cover_url)}
-                    disabled={coverSaving}
-                  >
-                    <img src={result.cover_url} alt={result.title || 'Résultat'} />
-                    <span>{result.title || result.artist_or_director || 'Image'}</span>
-                  </button>
-                ))}
-              </div>
+              {imgResultats.length > 0 && (
+                <div className="fiche-img-results">
+                  {imgResultats.map((r, i) => (
+                    <button
+                      key={`${r.cover_url}-${i}`}
+                      type="button"
+                      className="plate well fiche-img-result"
+                      onClick={() => poserImage(r.cover_url)}
+                      disabled={imgEnregistre}
+                    >
+                      <Sleeve src={r.cover_url} alt="" />
+                      <div className="plate-label">
+                        <div className="plate-title">{r.title || r.artist_or_director || 'Image'}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </>
           )}
 
-          {coverMode === 'url' && (
-            <div className="detail-cover-url">
+          {imgMode === 'url' && (
+            <div className="add-search">
               <input
                 type="url"
-                value={coverUrlDraft}
-                onChange={(e) => setCoverUrlDraft(e.target.value)}
+                value={imgUrl}
+                onChange={e => setImgUrl(e.target.value)}
                 placeholder="https://…"
+                aria-label="URL de l'image"
               />
-              <button className="btn-primary" onClick={() => saveCoverUrl(coverUrlDraft)} disabled={coverSaving || !coverUrlDraft.trim()}>
-                {coverSaving ? 'Enregistrement...' : 'Utiliser cette URL'}
+              <button
+                className="key key-primary"
+                onClick={() => poserImage(imgUrl)}
+                disabled={imgEnregistre || !imgUrl.trim()}
+              >
+                {imgEnregistre ? 'Enregistrement…' : 'Utiliser'}
               </button>
             </div>
           )}
 
-          {coverMode === 'upload' && (
-            <label className="detail-cover-upload">
+          {imgMode === 'fichier' && (
+            <label className="fiche-fichier well">
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleCoverUpload(e.target.files?.[0] || null)}
-                disabled={coverSaving}
+                onChange={e => envoyerImage(e.target.files?.[0] ?? null)}
+                disabled={imgEnregistre}
               />
-              <span>{coverSaving ? 'Envoi...' : 'Choisir une image depuis l’ordinateur'}</span>
+              <span className="lg lg-dim">
+                {imgEnregistre ? 'Envoi…' : "Choisir une image sur l'ordinateur"}
+              </span>
             </label>
           )}
-        </div>
+        </section>
+      )}
+
+      {pressage && (
+        <Bloc titre="Pressage">
+          <div className="fiche-lignes">
+            <Ligne legend="Format">{item.format_detail}</Ligne>
+            <Ligne legend="N° de catalogue"><span className="num">{item.catalog_no}</span></Ligne>
+            <Ligne legend="Pays">{item.country}</Ligne>
+            <Ligne legend="Sortie d'origine"><span className="num">{item.original_year}</span></Ligne>
+            <Ligne legend="Code-barres"><span className="num">{item.barcode}</span></Ligne>
+            <Ligne legend="Discogs">
+              {item.discogs_id
+                ? <a href={`https://www.discogs.com/release/${item.discogs_id}`} target="_blank" rel="noreferrer" className="fiche-lien">
+                    Voir le pressage
+                  </a>
+                : null}
+            </Ligne>
+          </div>
+        </Bloc>
       )}
 
       {item.tracklist && item.tracklist.length > 0 && (
-        <div className="detail-section">
-          <h2 className="detail-section-title">Tracklist</h2>
-          <div className="tracklist">
-            {item.tracklist.map(t => (
-              <div key={t.position} className="track">
-                <span className="track-num">{t.position}</span>
-                <span className="track-title">{t.title}</span>
-                {t.length_sec && <span className="track-dur">{formatDuration(t.length_sec)}</span>}
-              </div>
+        <Bloc titre="Pistes">
+          <ol className="fiche-pistes">
+            {/* Discogs ne fournit pas toujours la position : elle est absente sur
+                certains CD, et c'est une cote de face sur les vinyles (« A1 »,
+                « B7 »). On garde ce qu'il donne, on numérote sinon. */}
+            {item.tracklist.map((t, i) => (
+              <li key={`${t.position ?? ''}-${i}`}>
+                <span className="lg lg-dim num fiche-piste-num">
+                  {t.position != null && String(t.position).trim()
+                    ? String(t.position)
+                    : String(i + 1).padStart(2, '0')}
+                </span>
+                <span className="fiche-piste-titre">{t.title}</span>
+                {t.length_sec ? <span className="num fiche-piste-duree">{duree(t.length_sec)}</span> : null}
+              </li>
             ))}
+          </ol>
+        </Bloc>
+      )}
+
+      {item.community && (item.community.have || item.community.want || item.community.lowest_price) && (
+        <Bloc titre="Popularité & valeur">
+          <div className="fiche-lignes">
+            <Ligne legend="En possèdent"><span className="num">{item.community.have ? nf.format(item.community.have) : null}</span></Ligne>
+            <Ligne legend="En cherchent"><span className="num">{item.community.want ? nf.format(item.community.want) : null}</span></Ligne>
+            <Ligne legend="Plus bas prix">
+              {item.community.lowest_price ? <span className="num">{nf.format(item.community.lowest_price)} €</span> : null}
+            </Ligne>
+            <Ligne legend="En vente"><span className="num">{item.community.num_for_sale ?? null}</span></Ligne>
           </div>
-        </div>
+        </Bloc>
       )}
 
       {item.type === 'music' && (editorialLoading || editorial) && (
-        <div className="detail-section">
-          <h2 className="detail-section-title">L'album, en bref</h2>
+        <Bloc titre="L'album, en bref">
           {editorialLoading && !editorial ? (
-            <p className="detail-prose">Chargement des sources…</p>
+            <p className="lg lg-dim">Lecture des sources…</p>
           ) : (
             <>
-              {displayedRating && (
-                <div className="editorial-rating">
-                  <span className="editorial-rating-value">
-                    {displayedRating.value.toFixed(2)} / {displayedRating.scale}
-                  </span>
-                  <span className="editorial-rating-label">
-                    {displayedRating.label}
-                    {displayedRating.count ? ` · ${nf.format(displayedRating.count)} avis` : ''}
-                  </span>
-                </div>
+              {note && (
+                <p className="fiche-note">
+                  <span className="num fiche-note-val">{note.value.toFixed(2)}</span>
+                  <span className="lg lg-dim">/ {note.scale} · {note.label}
+                    {note.count ? ` · ${nf.format(note.count)} avis` : ''}</span>
+                </p>
               )}
+              {editorial?.album_summary && <p className="prose">{editorial.album_summary}</p>}
 
-              {editorial?.album_summary && <p className="detail-prose">{editorial.album_summary}</p>}
-
-              {mainCredits.length ? (
+              {creditsPrincipaux.length > 0 && (
                 <>
-                  <h3 className="detail-subtitle">Crédits principaux</h3>
-                  <div className="credits-grid">
-                    {mainCredits.map((credit) => (
-                      <div key={credit.role} className="credit">
-                        <span className="credit-role">{credit.role}</span>
-                        <span className="credit-names">{credit.names.join(', ')}</span>
-                      </div>
+                  <h3 className="lg lg-dim fiche-sous">Crédits principaux</h3>
+                  <div className="fiche-lignes">
+                    {/* Les sources éditoriales peuvent répéter un rôle ou une
+                        URL : la position garantit l'unicité de la clé. */}
+                    {creditsPrincipaux.map((c, i) => (
+                      <Ligne key={`${c.role}-${i}`} legend={c.role}>{c.names.join(', ')}</Ligne>
                     ))}
                   </div>
                 </>
-              ) : null}
+              )}
 
               {editorial?.anecdotes?.length ? (
                 <>
-                  <h3 className="detail-subtitle">Repères & anecdotes</h3>
-                  <div className="editorial-facts">
-                    {editorial.anecdotes.map((fact, index) => (
-                      <div key={`${fact.source}-${index}`} className="editorial-fact">
-                        <p className="detail-prose">{fact.text}</p>
-                        <span className="editorial-fact-source">{fact.source}</span>
-                      </div>
+                  <h3 className="lg lg-dim fiche-sous">Repères</h3>
+                  <ul className="fiche-faits">
+                    {editorial.anecdotes.map((f, i) => (
+                      <li key={`${f.source}-${i}`}>
+                        <p className="prose">{f.text}</p>
+                        <span className="lg lg-dim">{f.source}</span>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </>
               ) : null}
 
               {editorial?.artist_summary && (
                 <>
-                  <h3 className="detail-subtitle">L'artiste</h3>
-                  <p className="detail-prose">{editorial.artist_summary}</p>
+                  <h3 className="lg lg-dim fiche-sous">L'artiste</h3>
+                  <p className="prose">{editorial.artist_summary}</p>
                 </>
               )}
 
               {editorial?.sources?.length ? (
                 <>
-                  <h3 className="detail-subtitle">Sources</h3>
-                  <div className="editorial-sources">
-                    {editorial.sources.map((source) => (
-                      <a key={source.url} className="editorial-source" href={source.url} target="_blank" rel="noreferrer">
-                        {source.label}
-                      </a>
+                  <h3 className="lg lg-dim fiche-sous">Sources</h3>
+                  <p className="fiche-sources">
+                    {editorial.sources.map((s, i) => (
+                      <a key={`${s.url}-${i}`} href={s.url} target="_blank" rel="noreferrer" className="fiche-lien">{s.label}</a>
                     ))}
-                  </div>
+                  </p>
                 </>
               ) : null}
             </>
           )}
-        </div>
+        </Bloc>
       )}
 
       {videos.length > 0 && (
-        <div className="detail-section">
-          <h2 className="detail-section-title">Écouter / regarder</h2>
-          <div className="videos-list">
+        <Bloc titre="Écouter, regarder">
+          <ul className="fiche-videos">
             {videos.map(v => (
-              <a key={v.url} className="video-link" href={v.url} target="_blank" rel="noreferrer">
-                <span className="video-play">▶</span>
-                <span className="video-title">{v.title}</span>
-                {v.duration ? <span className="video-dur">{formatDuration(v.duration)}</span> : null}
-              </a>
+              <li key={v.url}>
+                <a href={v.url} target="_blank" rel="noreferrer">
+                  <span className="fiche-video-play" aria-hidden="true">▶</span>
+                  <span className="fiche-video-titre">{v.title}</span>
+                  {v.duration ? <span className="num lg lg-dim">{duree(v.duration)}</span> : null}
+                </a>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </Bloc>
       )}
 
-      <div className="detail-section">
-        <div className="detail-section-header">
-          <h2 className="detail-section-title">Notes personnelles</h2>
-          {!editingNotes && (
-            <button className="btn-edit" onClick={() => setEditingNotes(true)}>Modifier</button>
-          )}
-        </div>
-        {editingNotes ? (
-          <div className="notes-edit">
-            <textarea rows={4} value={notes} onChange={e => setNotes(e.target.value)} autoFocus />
-            <div className="notes-edit-actions">
-              <button className="btn-primary" onClick={saveNotes} disabled={saving}>
-                {saving ? '...' : 'Sauvegarder'}
+      <Bloc
+        titre="Notes personnelles"
+        action={!editNotes && <button className="key" onClick={() => setEditNotes(true)}>Modifier</button>}
+      >
+        {editNotes ? (
+          <>
+            <textarea rows={4} value={notes} onChange={e => setNotes(e.target.value)} autoFocus aria-label="Notes personnelles" />
+            <div className="fiche-notes-keys">
+              <button className="key key-primary" onClick={sauverNotes} disabled={savingNotes}>
+                {savingNotes ? 'Enregistrement…' : 'Enregistrer'}
               </button>
-              <button className="btn-secondary" onClick={() => { setEditingNotes(false); setNotes(item.notes || ''); }}>
+              <button className="key" onClick={() => { setEditNotes(false); setNotes(item.notes || ''); }}>
                 Annuler
               </button>
             </div>
-          </div>
+          </>
+        ) : item.notes ? (
+          <p className="prose fiche-notes">{item.notes}</p>
         ) : (
-          <p className="notes-display">
-            {item.notes || <span className="notes-empty">Aucune note. Clique sur Modifier pour en ajouter.</span>}
-          </p>
+          <p className="lg lg-dim">Rien de noté sur ce disque.</p>
         )}
-      </div>
+      </Bloc>
     </div>
   );
 }

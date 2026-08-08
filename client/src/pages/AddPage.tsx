@@ -1,349 +1,343 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { itemsApi, lookupApi, type Item, type Support, type State } from '../api';
+import { itemsApi, lookupApi, type Item, type State, type Support } from '../api';
+import { Sleeve } from '../components/Plate';
 import './AddPage.css';
 
-type Step = 'choose' | 'lookup' | 'form';
+type Etape = 'nature' | 'recherche' | 'fiche';
 
-const GENRES_MUSIC = ['Rock', 'Pop', 'Jazz', 'Classique', 'Électronique', 'Hip-Hop', 'Soul', 'Metal', 'Blues', 'Folk', 'R&B', 'Reggae'];
+const GENRES_MUSIQUE = ['Rock', 'Pop', 'Jazz', 'Classique', 'Électronique', 'Hip-Hop', 'Soul', 'Metal', 'Blues', 'Folk', 'R&B', 'Reggae'];
 const GENRES_VIDEO = ['Action', 'Comédie', 'Drame', 'Thriller', 'Horreur', 'Sci-Fi', 'Animation', 'Documentaire', 'Romance', 'Fantastique', 'Historique'];
 
-const DEFAULT_FORM: Partial<Item> = {
-  type: 'music',
-  support: 'cd',
-  title: '',
-  year: undefined,
-  genres: [],
-  artist_or_director: '',
-  notes: '',
-  state: 'bon_etat',
+const SUPPORT_NOM: Record<Support, string> = { cd: 'CD', vinyl: '33 tours', dvd: 'DVD', bluray: 'Blu-ray' };
+
+const VIERGE: Partial<Item> = {
+  type: 'music', support: 'cd', title: '', genres: [],
+  artist_or_director: '', notes: '', state: 'bon_etat',
 };
 
 export default function AddPage() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>('choose');
-  const [form, setForm] = useState<Partial<Item>>(DEFAULT_FORM);
-  const [lookupQuery, setLookupQuery] = useState('');
-  const [lookupResults, setLookupResults] = useState<any[]>([]);
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [etape, setEtape] = useState<Etape>('nature');
+  const [form, setForm] = useState<Partial<Item>>(VIERGE);
+  const [requete, setRequete] = useState('');
+  const [resultats, setResultats] = useState<any[]>([]);
+  const [cherche, setCherche] = useState(false);
+  const [enregistre, setEnregistre] = useState(false);
+  const [erreur, setErreur] = useState('');
 
-  function setField(key: keyof Item, value: any) {
-    setForm(prev => ({ ...prev, [key]: value }));
-  }
+  const champ = (key: keyof Item, value: any) => setForm(p => ({ ...p, [key]: value }));
 
-  function toggleGenre(genre: string) {
-    setForm(prev => {
-      const genres = prev.genres || [];
-      return {
-        ...prev,
-        genres: genres.includes(genre) ? genres.filter(g => g !== genre) : [...genres, genre],
-      };
-    });
-  }
+  const basculerGenre = (g: string) => setForm(p => {
+    const genres = p.genres ?? [];
+    return { ...p, genres: genres.includes(g) ? genres.filter(x => x !== g) : [...genres, g] };
+  });
 
-  async function handleLookup() {
-    if (!lookupQuery.trim()) return;
-    setLookupLoading(true);
-    setError('');
+  async function chercher() {
+    if (!requete.trim()) return;
+    setCherche(true);
+    setErreur('');
     try {
-      let results: any[];
+      let r: any[];
       if (form.type === 'video') {
-        results = await lookupApi.searchVideo(lookupQuery);
+        r = await lookupApi.searchVideo(requete);
       } else {
-        // Musique : Discogs en priorité, repli MusicBrainz si vide / token absent
-        try {
-          results = await lookupApi.searchDiscogs(lookupQuery);
-        } catch {
-          results = [];
-        }
-        if (!results.length) {
-          results = await lookupApi.searchMusic(lookupQuery);
-        }
+        // Discogs d'abord — c'est lui qui a les pressages. MusicBrainz en secours.
+        try { r = await lookupApi.searchDiscogs(requete); } catch { r = []; }
+        if (!r.length) r = await lookupApi.searchMusic(requete);
       }
-      setLookupResults(results);
-      if (!results.length) setError('Aucun résultat. Essaie une autre recherche ou saisis à la main.');
+      setResultats(r);
+      if (!r.length) setErreur('Rien trouvé. Change les mots, ou saisis la fiche à la main.');
     } catch {
-      setError('Erreur lors de la recherche');
+      setErreur('La recherche a échoué. Le serveur ou la source distante ne répond pas.');
     } finally {
-      setLookupLoading(false);
+      setCherche(false);
     }
   }
 
-  async function selectLookupResult(result: any) {
+  async function choisir(r: any) {
+    setErreur('');
     try {
-      let detail: any = result;
-      if (result.discogs_id) {
-        detail = await lookupApi.getDiscogsDetail(result.discogs_id);
-      } else if (result.mbid) {
-        detail = await lookupApi.getMusicDetail(result.mbid);
-      } else if (result.tmdb_id) {
-        detail = await lookupApi.getVideoDetail(result.tmdb_id, result.media_type || 'movie');
-      }
-      setForm(prev => ({
-        ...prev,
-        title: detail.title || prev.title,
-        year: detail.year || prev.year,
-        artist_or_director: detail.artist_or_director || prev.artist_or_director,
-        cover_url: detail.cover_url || prev.cover_url,
-        genres: detail.genres?.length ? detail.genres : (prev.genres || []),
-        label: detail.label ?? prev.label,
-        tracklist: detail.tracklist ?? prev.tracklist,
-        duration_total_sec: detail.duration_total_sec ?? prev.duration_total_sec,
-        vinyl_format: detail.vinyl_format ?? prev.vinyl_format,
-        // enrichissement disque
-        catalog_no: detail.catalog_no ?? prev.catalog_no,
-        country: detail.country ?? prev.country,
-        styles: detail.styles ?? prev.styles,
-        barcode: detail.barcode ?? prev.barcode,
-        original_year: detail.original_year ?? prev.original_year,
-        format_detail: detail.format_detail ?? prev.format_detail,
-        credits: detail.credits ?? prev.credits,
-        community: detail.community ?? prev.community,
-        videos: detail.videos ?? prev.videos,
-        description: detail.description ?? prev.description,
-        artist_bio: detail.artist_bio ?? prev.artist_bio,
-        discogs_id: detail.discogs_id ?? prev.discogs_id,
-        back_cover_url: detail.back_cover_url ?? prev.back_cover_url,
-        // vidéo
-        synopsis: detail.synopsis,
-        duration_min: detail.duration_min,
-        cast_list: detail.cast_list,
-        language: detail.language,
+      let d: any = r;
+      if (r.discogs_id) d = await lookupApi.getDiscogsDetail(r.discogs_id);
+      else if (r.mbid) d = await lookupApi.getMusicDetail(r.mbid);
+      else if (r.tmdb_id) d = await lookupApi.getVideoDetail(r.tmdb_id, r.media_type || 'movie');
+
+      setForm(p => ({
+        ...p,
+        title: d.title || p.title,
+        year: d.year || p.year,
+        artist_or_director: d.artist_or_director || p.artist_or_director,
+        cover_url: d.cover_url || p.cover_url,
+        genres: d.genres?.length ? d.genres : (p.genres ?? []),
+        label: d.label ?? p.label,
+        tracklist: d.tracklist ?? p.tracklist,
+        duration_total_sec: d.duration_total_sec ?? p.duration_total_sec,
+        vinyl_format: d.vinyl_format ?? p.vinyl_format,
+        catalog_no: d.catalog_no ?? p.catalog_no,
+        country: d.country ?? p.country,
+        styles: d.styles ?? p.styles,
+        barcode: d.barcode ?? p.barcode,
+        original_year: d.original_year ?? p.original_year,
+        format_detail: d.format_detail ?? p.format_detail,
+        credits: d.credits ?? p.credits,
+        community: d.community ?? p.community,
+        videos: d.videos ?? p.videos,
+        description: d.description ?? p.description,
+        artist_bio: d.artist_bio ?? p.artist_bio,
+        discogs_id: d.discogs_id ?? p.discogs_id,
+        back_cover_url: d.back_cover_url ?? p.back_cover_url,
+        synopsis: d.synopsis ?? p.synopsis,
+        duration_min: d.duration_min ?? p.duration_min,
+        cast_list: d.cast_list ?? p.cast_list,
+        language: d.language ?? p.language,
       }));
-      setStep('form');
+      setEtape('fiche');
     } catch {
-      setError('Erreur lors de la récupération des détails');
+      setErreur('Impossible de charger cette fiche depuis la source.');
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function enregistrer(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.title?.trim()) { setError('Le titre est requis'); return; }
-    setSaving(true);
-    setError('');
+    if (!form.title?.trim()) { setErreur('Le titre est obligatoire.'); return; }
+    setEnregistre(true);
+    setErreur('');
     try {
-      const created = await itemsApi.create(form);
-      navigate(`/item/${created.id}`);
+      const cree = await itemsApi.create(form);
+      navigate(`/item/${cree.id}`);
     } catch {
-      setError('Erreur lors de la sauvegarde');
-      setSaving(false);
+      setErreur("L'enregistrement a échoué. Le serveur ne répond pas.");
+      setEnregistre(false);
     }
   }
 
-  const GENRES = form.type === 'music' ? GENRES_MUSIC : GENRES_VIDEO;
+  const genres = form.type === 'music' ? GENRES_MUSIQUE : GENRES_VIDEO;
+  const supports: Support[] = form.type === 'music' ? ['cd', 'vinyl'] : ['dvd', 'bluray'];
 
   return (
-    <div className="add-page">
-      <h1 className="add-title">Ajouter un élément</h1>
+    <div className="add">
+      <section className="panel add-head">
+        <h1 className="display">Saisie</h1>
+        <p className="lg lg-dim">
+          {etape === 'nature' ? 'Nature et support'
+            : etape === 'recherche' ? 'Recherche dans les sources'
+            : 'Fiche'}
+        </p>
+      </section>
 
-      {step === 'choose' && (
-        <div className="add-choose">
-          <div className="add-type-row">
-            <label>Type</label>
-            <div className="add-type-btns">
+      {erreur && <p className="add-error" role="alert">{erreur}</p>}
+
+      {etape === 'nature' && (
+        <section className="panel add-bloc">
+          <div className="bank">
+            <span className="lg lg-dim">Nature</span>
+            <div className="selector">
               {(['music', 'video'] as const).map(t => (
                 <button
                   key={t}
-                  className={form.type === t ? 'active' : ''}
-                  onClick={() => { setField('type', t); setField('support', t === 'music' ? 'cd' : 'dvd'); }}
+                  type="button"
+                  className={`position${form.type === t ? ' position-sel' : ''}`}
+                  aria-pressed={form.type === t}
+                  onClick={() => setForm(p => ({ ...p, type: t, support: t === 'music' ? 'cd' : 'dvd' }))}
                 >
+                  <span className={`led${form.type === t ? ' led-on' : ''}`} aria-hidden="true" />
                   {t === 'music' ? 'Musique' : 'Vidéo'}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="add-support-row">
-            <label>Support</label>
-            <div className="add-support-btns">
-              {(form.type === 'music' ? ['cd', 'vinyl'] : ['dvd', 'bluray'] as Support[]).map(s => (
+          <div className="bank">
+            <span className="lg lg-dim">Support</span>
+            <div className="selector">
+              {supports.map(s => (
                 <button
                   key={s}
-                  className={form.support === s ? 'active' : ''}
-                  onClick={() => setField('support', s)}
+                  type="button"
+                  className={`position${form.support === s ? ' position-sel' : ''}`}
+                  aria-pressed={form.support === s}
+                  onClick={() => champ('support', s)}
                 >
-                  {s === 'cd' ? 'CD' : s === 'vinyl' ? 'Vinyle' : s === 'dvd' ? 'DVD' : 'Blu-ray'}
+                  <span className={`led${form.support === s ? ' led-on' : ''}`} aria-hidden="true" />
+                  {SUPPORT_NOM[s]}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="add-choose-actions">
-            <button className="btn-primary" onClick={() => setStep('lookup')}>
-              Rechercher automatiquement
+          <div className="add-keys">
+            <button className="key key-primary" onClick={() => setEtape('recherche')}>
+              Chercher dans les sources
             </button>
-            <button className="btn-secondary" onClick={() => setStep('form')}>
-              Saisie manuelle
-            </button>
+            <button className="key" onClick={() => setEtape('fiche')}>Saisir à la main</button>
           </div>
-        </div>
+        </section>
       )}
 
-      {step === 'lookup' && (
-        <div className="add-lookup">
-          <button className="add-back" onClick={() => setStep('choose')}>← Retour</button>
-          <div className="lookup-search">
+      {etape === 'recherche' && (
+        <section className="panel add-bloc">
+          <button className="add-back lg lg-dim" onClick={() => setEtape('nature')}>← Nature</button>
+
+          <div className="add-search">
             <input
-              type="text"
-              placeholder={form.type === 'music' ? 'Titre album, artiste...' : 'Titre du film ou série...'}
-              value={lookupQuery}
-              onChange={e => setLookupQuery(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLookup()}
+              type="search"
+              value={requete}
+              onChange={e => setRequete(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && chercher()}
+              placeholder={form.type === 'music' ? 'Album, artiste…' : 'Titre du film ou de la série…'}
+              aria-label="Recherche"
             />
-            <button className="btn-primary" onClick={handleLookup} disabled={lookupLoading}>
-              {lookupLoading ? '...' : 'Rechercher'}
+            <button className="key key-primary" onClick={chercher} disabled={cherche}>
+              {cherche ? 'Recherche…' : 'Chercher'}
             </button>
           </div>
-          {error && <p className="add-error">{error}</p>}
-          <div className="lookup-results">
-            {lookupResults.map((r, i) => (
-              <div key={i} className="lookup-result" onClick={() => selectLookupResult(r)}>
-                {r.cover_url
-                  ? <img src={r.cover_url} alt="" />
-              : <div className="lookup-result-noimg">{form.type === 'music' ? 'Audio' : 'Film'}</div>}
-                <div>
-                  <div className="lookup-result-title">{r.title}</div>
-                  <div className="lookup-result-sub">
-                    {[r.artist_or_director, r.format, r.country, r.label, r.media_type]
-                      .filter(Boolean).slice(0, 2).join(' · ')}
-                    {r.year ? ` — ${r.year}` : ''}
+
+          {resultats.length > 0 && (
+            <div className="add-results">
+              {resultats.map((r, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="plate well seat add-result"
+                  style={{ animationDelay: `${Math.min(i, 20) * 18}ms` }}
+                  onClick={() => choisir(r)}
+                >
+                  <Sleeve src={r.cover_url} alt="" fallback={form.type === 'music' ? '33T' : 'DVD'} />
+                  <div className="plate-label">
+                    <div className="plate-title">{r.title}</div>
+                    <div className="plate-sub">
+                      {[r.artist_or_director, r.label, r.country].filter(Boolean).slice(0, 2).join(' · ') || '—'}
+                    </div>
+                    <div className="plate-meta">
+                      <span className="lg lg-dim">
+                        {[r.format, r.year].filter(Boolean).join(' · ') || (r.media_type ?? '')}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button className="btn-secondary" style={{marginTop: '16px'}} onClick={() => setStep('form')}>
-            Remplir manuellement
-          </button>
-        </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <button className="key" onClick={() => setEtape('fiche')}>Saisir à la main</button>
+        </section>
       )}
 
-      {step === 'form' && (
-        <form className="add-form" onSubmit={handleSubmit}>
-          <button type="button" className="add-back" onClick={() => setStep('lookup')}>← Retour</button>
+      {etape === 'fiche' && (
+        <form className="panel add-bloc" onSubmit={enregistrer}>
+          <button type="button" className="add-back lg lg-dim" onClick={() => setEtape('recherche')}>
+            ← Recherche
+          </button>
 
-          {error && <p className="add-error">{error}</p>}
-
-          <div className="form-preview">
-            {form.cover_url
-              ? <img src={form.cover_url} alt="" className="form-cover-preview" />
-              : <div className="form-cover-placeholder">{form.type === 'music' ? 'Audio' : 'Film'}</div>
-            }
-            <div className="form-preview-fields">
-              <div className="form-group">
-                <label>Titre *</label>
-                <input
-                  type="text" required
-                  value={form.title || ''}
-                  onChange={e => setField('title', e.target.value)}
-                />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>{form.type === 'music' ? 'Artiste' : 'Réalisateur'}</label>
+          <div className="add-preview">
+            <div className="add-cover well">
+              <Sleeve src={form.cover_url} alt="" fallback={form.type === 'music' ? '33T' : 'DVD'} />
+            </div>
+            <div className="add-fields">
+              <label className="field">
+                <span className="lg lg-dim">Titre — obligatoire</span>
+                <input required value={form.title ?? ''} onChange={e => champ('title', e.target.value)} />
+              </label>
+              <div className="field-row">
+                <label className="field">
+                  <span className="lg lg-dim">{form.type === 'music' ? 'Artiste' : 'Réalisateur'}</span>
                   <input
-                    type="text"
-                    value={form.artist_or_director || ''}
-                    onChange={e => setField('artist_or_director', e.target.value)}
+                    value={form.artist_or_director ?? ''}
+                    onChange={e => champ('artist_or_director', e.target.value)}
                   />
-                </div>
-                <div className="form-group form-group-sm">
-                  <label>Année</label>
+                </label>
+                <label className="field field-sm">
+                  <span className="lg lg-dim">Année</span>
                   <input
-                    type="number" min="1900" max="2030"
-                    value={form.year || ''}
-                    onChange={e => setField('year', e.target.value ? parseInt(e.target.value) : null)}
+                    type="number" min={1900} max={2100}
+                    value={form.year ?? ''}
+                    onChange={e => champ('year', e.target.value ? Number(e.target.value) : null)}
                   />
-                </div>
+                </label>
               </div>
-              <div className="form-group">
-                <label>URL de la pochette</label>
-                <input
-                  type="url"
-                  value={form.cover_url || ''}
-                  onChange={e => setField('cover_url', e.target.value)}
-                />
-              </div>
+              <label className="field">
+                <span className="lg lg-dim">URL de la pochette</span>
+                <input type="url" value={form.cover_url ?? ''} onChange={e => champ('cover_url', e.target.value)} />
+              </label>
             </div>
           </div>
 
-          <div className="form-group">
-            <label>Genres</label>
-            <div className="form-genres">
-              {GENRES.map(g => (
+          <div className="field">
+            <span className="lg lg-dim">Genres</span>
+            <div className="chips">
+              {genres.map(g => (
                 <button
-                  type="button" key={g}
-                  className={`genre-chip ${form.genres?.includes(g) ? 'active' : ''}`}
-                  onClick={() => toggleGenre(g)}
+                  key={g}
+                  type="button"
+                  className={`chip${form.genres?.includes(g) ? ' chip-on' : ''}`}
+                  aria-pressed={form.genres?.includes(g)}
+                  onClick={() => basculerGenre(g)}
                 >{g}</button>
               ))}
             </div>
           </div>
 
-          <div className="form-group">
-            <label>État</label>
-            <select value={form.state || 'bon_etat'} onChange={e => setField('state', e.target.value as State)}>
-              <option value="neuf">Neuf</option>
-              <option value="bon_etat">Bon état</option>
-              <option value="use">Usagé</option>
-            </select>
-          </div>
+          <div className="field-row">
+            <label className="field field-sm">
+              <span className="lg lg-dim">État</span>
+              <select value={form.state ?? 'bon_etat'} onChange={e => champ('state', e.target.value as State)}>
+                <option value="neuf">Neuf</option>
+                <option value="bon_etat">Bon état</option>
+                <option value="use">Usagé</option>
+              </select>
+            </label>
 
-          {form.type === 'music' && (
-            <>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Label</label>
-                  <input type="text" value={form.label || ''} onChange={e => setField('label', e.target.value)} />
-                </div>
-                {form.support === 'vinyl' && (
-                  <div className="form-group">
-                    <label>Format vinyle</label>
-                    <select value={form.vinyl_format || ''} onChange={e => setField('vinyl_format', e.target.value)}>
-                      <option value="">—</option>
-                      <option value="33t">33 tours</option>
-                      <option value="45t">45 tours</option>
-                      <option value="78t">78 tours</option>
-                      <option value="picture">Picture disc</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+            {form.type === 'music' && (
+              <label className="field">
+                <span className="lg lg-dim">Label</span>
+                <input value={form.label ?? ''} onChange={e => champ('label', e.target.value)} />
+              </label>
+            )}
+            {form.type === 'music' && form.support === 'vinyl' && (
+              <label className="field field-sm">
+                <span className="lg lg-dim">Format</span>
+                <select value={form.vinyl_format ?? ''} onChange={e => champ('vinyl_format', e.target.value)}>
+                  <option value="">—</option>
+                  <option value="33t">33 tours</option>
+                  <option value="45t">45 tours</option>
+                  <option value="78t">78 tours</option>
+                  <option value="picture">Picture disc</option>
+                </select>
+              </label>
+            )}
+          </div>
 
           {form.type === 'video' && (
             <>
-              <div className="form-group">
-                <label>Synopsis</label>
-                <textarea rows={3} value={form.synopsis || ''} onChange={e => setField('synopsis', e.target.value)} />
-              </div>
-              <div className="form-row">
-                <div className="form-group form-group-sm">
-                  <label>Durée (min)</label>
+              <label className="field">
+                <span className="lg lg-dim">Synopsis</span>
+                <textarea rows={3} value={form.synopsis ?? ''} onChange={e => champ('synopsis', e.target.value)} />
+              </label>
+              <div className="field-row">
+                <label className="field field-sm">
+                  <span className="lg lg-dim">Durée — minutes</span>
                   <input
-                    type="number" min="1"
-                    value={form.duration_min || ''}
-                    onChange={e => setField('duration_min', e.target.value ? parseInt(e.target.value) : null)}
+                    type="number" min={1}
+                    value={form.duration_min ?? ''}
+                    onChange={e => champ('duration_min', e.target.value ? Number(e.target.value) : null)}
                   />
-                </div>
-                <div className="form-group">
-                  <label>Langue originale</label>
-                  <input type="text" value={form.language || ''} onChange={e => setField('language', e.target.value)} />
-                </div>
+                </label>
+                <label className="field">
+                  <span className="lg lg-dim">Langue d'origine</span>
+                  <input value={form.language ?? ''} onChange={e => champ('language', e.target.value)} />
+                </label>
               </div>
             </>
           )}
 
-          <div className="form-group">
-            <label>Notes personnelles</label>
-            <textarea rows={3} value={form.notes || ''} onChange={e => setField('notes', e.target.value)} />
-          </div>
+          <label className="field">
+            <span className="lg lg-dim">Notes personnelles</span>
+            <textarea rows={3} value={form.notes ?? ''} onChange={e => champ('notes', e.target.value)} />
+          </label>
 
-          <button type="submit" className="btn-primary btn-submit" disabled={saving}>
-            {saving ? 'Sauvegarde...' : 'Ajouter à la collection'}
+          <button type="submit" className="key key-primary key-wide" disabled={enregistre}>
+            {enregistre ? 'Enregistrement…' : 'Ranger dans les rayons'}
           </button>
         </form>
       )}

@@ -1,0 +1,138 @@
+.chassis {
+  min-height: 100vh;
+  padding: 9px 9px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  background: linear-gradient(180deg, #232629, var(--chassis-lo) 420px);
+}
+
+/* ── Rail de marque ──────────────────────────────────────────────────── */
+
+.rail {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-height: var(--rail-h);
+  padding: 11px 22px;
+  position: sticky;
+  top: 9px;
+  z-index: var(--z-sticky);
+}
+.rail-mark { flex: none; }
+.mark {
+  display: block;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--legend-strong);
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, .7);
+}
+.mark-sub {
+  display: block;
+  margin-top: 1px;
+  font-family: var(--fc);
+  font-weight: 500;
+  font-size: 9px;
+  letter-spacing: .19em;
+  text-transform: uppercase;
+  color: var(--legend-dim);
+}
+.rail-modes { margin-left: auto; }
+.rail-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  max-width: 260px;
+}
+.rail-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex: none; }
+
+/* ── Baie : contenu + logement de lecture ────────────────────────────── */
+
+.bay {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--deck-w);
+  gap: 9px;
+  align-items: start;
+}
+.bay-main { min-width: 0; }
+.bay-deck { position: sticky; top: calc(var(--rail-h) + 18px); }
+
+/* ── Bandeau du bas — seulement sur écran étroit ─────────────────────── */
+
+.bottom-nav { display: none; }
+
+@media (max-width: 1080px) {
+  .bay { grid-template-columns: minmax(0, 1fr); }
+  /* Le logement passe en tête : c'est la première chose qu'on veut voir
+     debout devant l'étagère, téléphone en main. */
+  .bay-deck { position: static; order: -1; }
+}
+
+@media (max-width: 760px) {
+  .chassis { padding: 6px 6px 74px; }
+  .rail { flex-wrap: wrap; gap: 10px 16px; padding: 10px 14px; top: 6px; }
+  .rail-modes { display: none; }
+  .rail-account { margin-left: auto; }
+
+  /* Sur téléphone, la platine a sa propre page : le logement disparaît de la
+     colonne principale et la barre du bas y donne accès au pouce. */
+  .bay-deck { display: none; }
+  .bay-platine .bay-deck { display: block; }
+  .bay-platine .bay-main { display: none; }
+
+  .bottom-nav {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: var(--z-sticky);
+    display: flex;
+    border-top: 1px solid var(--bezel);
+    background:
+      repeating-linear-gradient(90deg, rgba(255, 255, 255, .013) 0 1px, transparent 1px 3px),
+      linear-gradient(180deg, var(--panel-hi), var(--panel-lo));
+    box-shadow: 0 -3px 12px rgba(0, 0, 0, .55);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .bottom-item {
+    flex: 1;
+    min-height: 58px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border-right: 1px solid #0C0D0E;
+    font-family: var(--fc);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--legend-dim);
+  }
+  .bottom-item:last-child { border-right: 0; }
+  .bottom-item-sel { color: var(--legend-strong); background: linear-gradient(180deg, #31353A, #24272A); }
+}
+
+@media (min-width: 761px) {
+  /* Au-dessus du téléphone, /platine n'existe pas : le logement est déjà là. */
+  .bay-platine .bay-main { display: block; }
+}
+
+/* ── Bandeau serveur absent ──────────────────────────────────────────── */
+
+.backend-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  border: 1px solid var(--bezel);
+  border-radius: var(--r-panel);
+  background: var(--well);
+  box-shadow: var(--creux);
+}
+.backend-bar p { font-size: 13.5px; color: var(--ink); }
+.backend-bar .key { margin-left: auto; }

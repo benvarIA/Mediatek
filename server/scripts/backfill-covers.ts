@@ -96,7 +96,7 @@ function setIfEmpty(item: Item, patch: Backfill, key: keyof Item, value: unknown
 }
 
 function userAgent() {
-  return `BibliAnalogique/1.0 (+${process.env.APP_CONTACT_EMAIL || 'contact@example.com'})`;
+  return `Mediatek/1.0 (+${process.env.APP_CONTACT_EMAIL || 'contact@example.com'})`;
 }
 
 async function discogsGet(url: string, params: Record<string, unknown> = {}) {

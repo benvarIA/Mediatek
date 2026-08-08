@@ -1,231 +1,424 @@
-/* ── BibliAnalogique — salle de lecture ─────────────────────
-   Vert bibliothèque profond, laiton doré, crème papier.
-   Une collection qu'on consulte le soir, sous la lampe. */
+/* ── Mediatek — la chaîne ────────────────────────────────────────────────
+   Une chaîne hi-fi à éléments séparés, ramenée à un seul châssis.
+   Deux reliefs, strictement inverses : la plaque est en relief, le puits est
+   en creux. Le métal est la machine, le puits est le contenu. Rien ne flotte.
+   L'ambre n'éclaire que ce qui se passe maintenant.
+   Voir DESIGN.md pour les règles nommées. */
 
 :root {
-  --bg: oklch(0.17 0.022 168);          /* vert-noir, fond de salle */
-  --bg2: oklch(0.21 0.028 165);         /* boiserie */
-  --bg3: oklch(0.26 0.034 162);         /* panneau relevé */
-  --surface: oklch(0.96 0.02 95 / 0.05);
-  --surface-strong: oklch(0.96 0.02 95 / 0.09);
-  --border: oklch(0.88 0.04 95 / 0.14);
-  --border-strong: oklch(0.88 0.04 95 / 0.26);
-  --text: oklch(0.94 0.022 92);         /* crème papier */
-  --text2: oklch(0.76 0.028 100);
-  --text3: oklch(0.60 0.025 105);
-  --accent: oklch(0.78 0.105 84);       /* laiton */
-  --accent2: oklch(0.86 0.105 90);      /* laiton poli */
-  --accent-ink: oklch(0.23 0.03 100);   /* encre sur laiton */
-  --oxblood: oklch(0.46 0.115 28);      /* cuir lie-de-vin */
-  --danger: oklch(0.68 0.14 30);
-  --success: oklch(0.74 0.09 145);
-  --radius: 8px;
-  --radius-sm: 5px;
-  --nav-h: 72px;
-  --shadow: 0 22px 70px oklch(0 0 0 / 0.42);
-  --font-ui: "Avenir Next", "Avenir", "Helvetica Neue", sans-serif;
-  --font-display: "EB Garamond", "Iowan Old Style", Palatino, Georgia, serif;
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  /* z-index : dropdown < sticky < toast */
+  --chassis: #17181A;
+  --chassis-lo: #101113;
+  --panel-hi: #34373B;
+  --panel: #2A2D30;
+  --panel-lo: #212326;
+  --bezel: #0B0C0D;
+  --well: #0E0F10;
+  --well-hi: #141618;
+
+  --legend: #A8AEB4;          /* sérigraphie au repos      — 6,2:1 sur panneau */
+  --legend-dim: #969CA2;      /* légende secondaire        — 5,0:1, le plancher */
+  --legend-strong: #E4E8EB;   /* sélectionné, survolé     — 11,2:1 */
+  --ink: #C6CBD0;             /* corps de texte, contenu   — 8,5:1 */
+
+  --amber: #FF9A1F;
+  --amber-off: #3A2A14;
+  --green: #5FD07A;
+  --red: #E23B2E;             /* aplat uniquement */
+  --red-text: #FF6B5C;        /* texte et icônes           — 5,0:1 */
+
+  --r-panel: 2px;
+  --r-key: 3px;
+  --rail-h: 62px;
+  --deck-w: 366px;
+
+  --fc: "Barlow Condensed", "DIN Alternate", "Oswald", "Arial Narrow", sans-serif;
+  --fb: "Barlow", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* Sortie exponentielle : le mouvement d'un mécanisme qui se pose. */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --relief: inset 0 1px 0 rgba(255, 255, 255, .07), 0 2px 5px rgba(0, 0, 0, .55);
+  --creux: inset 0 2px 7px rgba(0, 0, 0, .85), 0 1px 0 rgba(255, 255, 255, .045);
+
   --z-sticky: 100;
-  --z-dropdown: 200;
+  --z-pop: 200;
+  --z-toast: 300;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { background: var(--bg); }
+html { background: var(--chassis-lo); }
 
 body {
   min-height: 100vh;
-  background:
-    /* halo de lampe, chaud, en haut */
-    radial-gradient(ellipse 90rem 42rem at 24% -12%, oklch(0.78 0.105 84 / 0.11), transparent 62%),
-    /* reflet vert cuir, bas de page */
-    radial-gradient(ellipse 70rem 40rem at 85% 118%, oklch(0.32 0.06 158 / 0.35), transparent 60%),
-    linear-gradient(180deg, oklch(0.19 0.026 166) 0%, oklch(0.15 0.02 170) 100%);
-  color: var(--text);
-  font-family: var(--font-ui);
-  line-height: 1.5;
+  background: var(--chassis-lo);
+  color: var(--ink);
+  font-family: var(--fb);
+  font-size: 15px;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* grain papier, à peine perceptible */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
-  pointer-events: none;
-}
-
-#root { position: relative; z-index: 1; min-height: 100vh; }
+#root { min-height: 100vh; }
 
 a { color: inherit; text-decoration: none; }
 
-button {
-  cursor: pointer;
-  border: none;
-  background: none;
-  color: inherit;
-  font: inherit;
+/* ── Matière ─────────────────────────────────────────────────────────── */
+
+/* Plaque d'aluminium brossé, vissée sur le châssis. Le brossage est un
+   dégradé directionnel, jamais une image : net à toute densité de pixels. */
+.panel {
+  position: relative;
+  border-radius: var(--r-panel);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .013) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--panel-hi) 0%, var(--panel) 46%, var(--panel-lo) 100%);
+  box-shadow: var(--relief);
 }
 
-button:disabled {
-  cursor: not-allowed;
+/* Découpe dans la plaque. Tout contenu vit là-dedans. */
+.well {
+  border: 1px solid var(--bezel);
+  border-radius: var(--r-panel);
+  background: var(--well);
+  box-shadow: var(--creux);
 }
 
-input,
-select,
-textarea {
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: oklch(0.96 0.02 95 / 0.055);
-  color: var(--text);
-  font: inherit;
-  min-height: 42px;
-  padding: 10px 12px;
-  outline: none;
-  transition: border-color 0.18s var(--ease-out), background 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out);
+/* Vis apparente — marque une frontière structurelle, jamais un motif. */
+.screw {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #4E5257, #191B1D 72%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .07);
+  pointer-events: none;
+}
+.screw::after {
+  content: "";
+  position: absolute;
+  inset: 3px 1px auto;
+  height: 1px;
+  background: #0D0E0F;
 }
 
-select {
-  appearance: none;
-  background-image:
-    linear-gradient(45deg, transparent 50%, var(--text2) 50%),
-    linear-gradient(135deg, var(--text2) 50%, transparent 50%);
-  background-position:
-    calc(100% - 17px) 18px,
-    calc(100% - 12px) 18px;
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-  padding-right: 34px;
+/* ── Typographie ─────────────────────────────────────────────────────── */
+
+/* La légende sérigraphiée : capitales étroites, 11px, jamais plus grand. */
+.lg {
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--legend);
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, .65);
+}
+.lg-dim { color: var(--legend-dim); }
+.lg-on { color: var(--legend-strong); }
+.lg-amber { color: var(--amber); }
+
+.headline {
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.05;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--legend-strong);
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, .7);
 }
 
-textarea {
-  min-height: 110px;
-  resize: vertical;
+.display {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: clamp(1.75rem, 4vw, 2.6rem);
+  line-height: .92;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--legend-strong);
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, .7);
+  text-wrap: balance;
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: oklch(0.78 0.105 84 / 0.65);
-  background: oklch(0.96 0.02 95 / 0.08);
-  box-shadow: 0 0 0 3px oklch(0.78 0.105 84 / 0.13);
-}
+.num { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 
-input::placeholder,
-textarea::placeholder {
-  color: var(--text3);
-}
+.prose { max-width: 68ch; color: var(--ink); }
 
-::selection {
-  background: oklch(0.78 0.105 84 / 0.35);
-}
+/* ── Diodes et afficheurs ────────────────────────────────────────────── */
 
-::-webkit-scrollbar { width: 9px; }
-::-webkit-scrollbar-track { background: oklch(0.16 0.02 168); }
-::-webkit-scrollbar-thumb {
-  background: oklch(0.88 0.04 95 / 0.18);
-  border: 2px solid oklch(0.16 0.02 168);
-  border-radius: 999px;
+.led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber-off);
+  flex: none;
+  transition: background 80ms linear, box-shadow 80ms linear;
 }
+.led-on { background: var(--amber); box-shadow: 0 0 6px rgba(255, 154, 31, .7); }
+.led-green { background: var(--green); box-shadow: 0 0 6px rgba(95, 208, 122, .6); }
+.led-red { background: var(--red); box-shadow: 0 0 6px rgba(226, 59, 46, .55); }
 
-.btn-primary,
-.btn-secondary {
+/* Un afficheur est TOUJOURS encastré : la trame de points n'est lisible que
+   si sa couleur est celle du fond du puits. Voir « la règle de l'afficheur ». */
+.readout {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-weight: 700;
-  transition: transform 0.18s var(--ease-out), border-color 0.18s var(--ease-out), background 0.18s var(--ease-out), color 0.18s var(--ease-out), opacity 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out);
+  padding: 3px 10px;
+  border: 1px solid var(--bezel);
+  border-radius: var(--r-panel);
+  background: var(--well);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, .9), 0 1px 0 rgba(255, 255, 255, .045);
+}
+.lcd {
+  position: relative;
+  display: inline-block;
+  font-family: var(--fb);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .07em;
+  color: var(--amber);
+  text-shadow: 0 0 9px rgba(255, 154, 31, .45);
+}
+/* La trame de points doit rester lisible : à 3px de pas elle sectionne des
+   glyphes de 15px et l'afficheur devient un bloc sombre. 4px de pas avec un
+   cœur transparent plus large garde l'encre et le grain. */
+.lcd::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 50% 50%, transparent 58%, var(--well) 66%);
+  background-size: 4px 4px;
+}
+.lcd-off { color: var(--legend-dim); text-shadow: none; }
+
+/* L'échelle ambre : la barre de progression de ce monde, et la seule. */
+.ladder { display: flex; gap: 2px; align-items: flex-end; }
+.seg {
+  width: 4px;
+  height: 11px;
+  border-radius: 1px;
+  background: var(--amber-off);
+  transition: background 80ms linear, box-shadow 80ms linear;
+}
+.seg-on { background: var(--amber); box-shadow: 0 0 4px rgba(255, 154, 31, .55); }
+
+/* ── Contrôles ───────────────────────────────────────────────────────── */
+
+button { font: inherit; color: inherit; border: none; background: none; cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+
+/* Touche de transport : biseau clair en haut, sombre en bas. */
+.key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  min-width: 44px;
+  padding: 0 16px;
+  border: 1px solid #0D0E0F;
+  border-radius: var(--r-key);
+  background: linear-gradient(180deg, #3A3E42, #25282B);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .13), 0 2px 3px rgba(0, 0, 0, .5);
+  font-family: var(--fc);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--legend);
+  transition: color 120ms var(--ease), box-shadow 120ms var(--ease), transform 80ms linear;
+}
+.key:hover:not(:disabled) { color: var(--legend-strong); }
+.key:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, .6);
+}
+.key:disabled { opacity: .45; }
+
+/* La touche primaire — poser un disque. Engagée = diode allumée. */
+.key-primary {
+  color: var(--legend-strong);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .16),
+    0 0 0 1px rgba(255, 154, 31, .45),
+    0 2px 6px rgba(0, 0, 0, .5);
+}
+.key-primary:hover:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .16),
+    0 0 0 1px rgba(255, 154, 31, .8),
+    0 0 14px rgba(255, 154, 31, .18),
+    0 2px 6px rgba(0, 0, 0, .5);
+}
+.key-rec { color: var(--red-text); }
+.key-rec:hover:not(:disabled) { color: #FF8A7C; }
+
+/* Sélecteur à positions — le TYPE I / II / IV d'une platine, pas des onglets. */
+.selector {
+  display: flex;
+  border: 1px solid var(--bezel);
+  border-radius: var(--r-panel);
+  background: #1A1C1E;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, .7);
+  overflow: hidden;
+}
+.position {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 15px;
+  border-right: 1px solid #0C0D0E;
+  font-family: var(--fc);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--legend-dim);
+  white-space: nowrap;
+  transition: color 120ms var(--ease), background 120ms var(--ease);
+}
+.position:last-child { border-right: 0; }
+.position:hover { color: var(--legend); }
+.position-sel {
+  color: var(--legend-strong);
+  background: linear-gradient(180deg, #31353A, #24272A);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .09);
 }
 
-.btn-primary {
-  background: linear-gradient(180deg, var(--accent2), var(--accent));
-  border: 1px solid oklch(0.86 0.105 90 / 0.6);
-  color: var(--accent-ink);
-  box-shadow: 0 8px 24px oklch(0.78 0.105 84 / 0.18), inset 0 1px 0 oklch(1 0 0 / 0.25);
+/* Champs — encastrés, comme tout contenu. */
+input, select, textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--bezel);
+  border-radius: var(--r-panel);
+  background: var(--well);
+  box-shadow: var(--creux);
+  color: var(--ink);
+  font: inherit;
+  outline: none;
+  transition: box-shadow 140ms var(--ease);
+}
+textarea { min-height: 110px; resize: vertical; line-height: 1.5; }
+input::placeholder, textarea::placeholder { color: var(--legend-dim); }
+input:focus, select:focus, textarea:focus {
+  box-shadow: var(--creux), 0 0 0 2px rgba(255, 154, 31, .45);
+}
+select {
+  appearance: none;
+  padding-right: 32px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--legend-dim) 50%),
+    linear-gradient(135deg, var(--legend-dim) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 18px, calc(100% - 11px) 18px;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+select option { background: var(--panel); color: var(--ink); }
+input[type="checkbox"] { width: auto; min-height: 0; accent-color: var(--amber); }
+
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+::selection { background: rgba(255, 154, 31, .3); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--chassis-lo); }
+::-webkit-scrollbar-thumb {
+  border: 2px solid var(--chassis-lo);
+  border-radius: 999px;
+  background: #3B4045;
+}
+::-webkit-scrollbar-thumb:hover { background: #4A5055; }
+
+/* ── Plaque d'échantillon : une pochette montée dans le panneau ───────── */
+
+.plate { display: block; padding: 6px; transition: box-shadow 140ms var(--ease); }
+.plate:hover { box-shadow: var(--creux), 0 0 0 1px rgba(255, 255, 255, .1); }
+.plate-live { box-shadow: var(--creux), 0 0 0 1px rgba(255, 154, 31, .5); }
+
+.sleeve {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--bezel);
+  border-radius: 1px;
+  background: #16181A;
+  box-shadow: inset 0 2px 9px rgba(0, 0, 0, .8);
+}
+.sleeve img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* Le reflet du verre. Un seul, cohérent sur toute la façade. */
+.sleeve::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(158deg,
+    rgba(255, 255, 255, .10) 0%, transparent 34%,
+    transparent 78%, rgba(0, 0, 0, .30) 100%);
+}
+.sleeve-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fc);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .18em;
+  color: #3E4348;
 }
 
-.btn-primary:hover {
-  filter: brightness(1.06);
-  transform: translateY(-1px);
-  box-shadow: 0 12px 30px oklch(0.78 0.105 84 / 0.24), inset 0 1px 0 oklch(1 0 0 / 0.25);
+.plate-label { margin-top: 6px; padding: 4px 5px 5px; border-top: 1px solid rgba(255, 255, 255, .05); }
+.plate-title {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.22;
+  color: #D2D7DB;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
-.btn-primary:active {
-  transform: scale(0.96);
+.plate-sub {
+  margin-top: 1px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--legend-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+.plate-meta { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
 
-.btn-primary:disabled {
-  opacity: 0.55;
-  transform: none;
+/* ── Mouvement ───────────────────────────────────────────────────────── */
+
+/* Le seul moment de mouvement orchestré du système : les plaques se posent
+   dans le panneau, en cascade, comme un chargeur qui se remplit. */
+@keyframes seat-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
 }
+.seat { animation: seat-in 320ms var(--ease) backwards; }
 
-.btn-secondary {
-  background: oklch(0.96 0.02 95 / 0.045);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-
-.btn-secondary:hover {
-  border-color: var(--border-strong);
-  background: oklch(0.96 0.02 95 / 0.08);
-}
-
-.btn-secondary:active {
-  transform: scale(0.96);
-}
-
-/* ── Ornement de page de titre : double filet doré ────────── */
-
-.gilt-rule {
-  border: none;
-  height: 5px;
-  border-top: 1px solid oklch(0.78 0.105 84 / 0.55);
-  border-bottom: 1px solid oklch(0.78 0.105 84 / 0.28);
-}
-
-@keyframes page-in {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* mise en rayon : chaque pochette se pose sur l'étagère */
-@keyframes shelve-in {
-  from {
-    opacity: 0;
-    transform: translateY(26px) scale(0.97);
-    filter: brightness(0.6);
-  }
-  60% { filter: brightness(1); }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: brightness(1);
-  }
-}
-
-@keyframes skeleton-sheen {
+@keyframes sheen {
   from { background-position: 180% 0; }
   to { background-position: -80% 0; }
 }
+.skeleton {
+  background:
+    linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, .05) 50%, transparent 100%),
+    var(--well);
+  background-size: 220% 100%;
+  animation: sheen 1.4s linear infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
     scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
   }
 }

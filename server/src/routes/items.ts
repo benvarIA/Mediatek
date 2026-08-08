@@ -49,7 +49,7 @@ function parseItem(row: any) {
 }
 
 function userAgent() {
-  return `BibliAnalogique/1.0 (+${process.env.APP_CONTACT_EMAIL || 'contact@example.com'})`;
+  return `Mediatek/1.0 (+${process.env.APP_CONTACT_EMAIL || 'contact@example.com'})`;
 }
 
 function discogsHeaders() {
@@ -529,43 +529,67 @@ router.post('/', (req: Request, res: Response) => {
 });
 
 // PUT /items/:id
+// Les colonnes sont énumérées une seule fois : la liste construit à la fois le
+// SET et l'ordre des valeurs. L'ancienne version tenait deux listes en
+// parallèle, et un paramètre `watched_or_listened` était resté dans l'appel
+// après le retrait de la colonne du SET — tout décalait d'un cran et SQLite
+// refusait chaque mise à jour, notes personnelles comprises.
+const asJson = (v: any) => (typeof v === 'string' ? v : JSON.stringify(v ?? []));
+const asJsonOrNull = (v: any) =>
+  typeof v === 'string' ? v : v ? JSON.stringify(v) : null;
+
+const UPDATABLE: { col: string; read: (f: any) => unknown }[] = [
+  { col: 'type', read: f => f.type },
+  { col: 'support', read: f => f.support },
+  { col: 'title', read: f => f.title },
+  { col: 'year', read: f => f.year ?? null },
+  { col: 'genres', read: f => asJson(f.genres) },
+  { col: 'cover_url', read: f => f.cover_url ?? null },
+  { col: 'artist_or_director', read: f => f.artist_or_director ?? null },
+  { col: 'notes', read: f => f.notes ?? '' },
+  { col: 'state', read: f => f.state },
+  { col: 'label', read: f => f.label ?? null },
+  { col: 'tracklist', read: f => asJson(f.tracklist) },
+  { col: 'duration_total_sec', read: f => f.duration_total_sec ?? null },
+  { col: 'vinyl_format', read: f => f.vinyl_format ?? null },
+  { col: 'synopsis', read: f => f.synopsis ?? null },
+  { col: 'duration_min', read: f => f.duration_min ?? null },
+  { col: 'cast_list', read: f => asJson(f.cast_list) },
+  { col: 'language', read: f => f.language ?? null },
+  { col: 'subtitles', read: f => f.subtitles ?? null },
+  { col: 'extras', read: f => f.extras ?? null },
+  { col: 'catalog_no', read: f => f.catalog_no ?? null },
+  { col: 'country', read: f => f.country ?? null },
+  { col: 'styles', read: f => asJson(f.styles) },
+  { col: 'barcode', read: f => f.barcode ?? null },
+  { col: 'original_year', read: f => f.original_year ?? null },
+  { col: 'format_detail', read: f => f.format_detail ?? null },
+  { col: 'credits', read: f => asJson(f.credits) },
+  { col: 'community', read: f => asJsonOrNull(f.community) },
+  { col: 'videos', read: f => asJson(f.videos) },
+  { col: 'description', read: f => f.description ?? null },
+  { col: 'artist_bio', read: f => f.artist_bio ?? null },
+  { col: 'discogs_id', read: f => f.discogs_id ?? null },
+  { col: 'back_cover_url', read: f => f.back_cover_url ?? null },
+];
+
+const updateStmt = db.prepare(
+  `UPDATE items SET ${UPDATABLE.map(c => `${c.col}=?`).join(', ')} WHERE id=?`,
+);
+
 router.put('/:id', (req: Request, res: Response) => {
   const existing = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Introuvable' });
 
   const fields = { ...existing, ...req.body };
 
-  const asJson = (v: any) => (typeof v === 'string' ? v : JSON.stringify(v || []));
-
-  db.prepare(`
-    UPDATE items SET
-      type=?, support=?, title=?, year=?, genres=?, cover_url=?, artist_or_director=?,
-      notes=?, state=?,
-      label=?, tracklist=?, duration_total_sec=?, vinyl_format=?,
-      synopsis=?, duration_min=?, cast_list=?, language=?, subtitles=?, extras=?,
-      catalog_no=?, country=?, styles=?, barcode=?, original_year=?, format_detail=?,
-      credits=?, community=?, videos=?, description=?, artist_bio=?, discogs_id=?, back_cover_url=?
-    WHERE id=?
-  `).run(
-    fields.type, fields.support, fields.title, fields.year,
-    asJson(fields.genres),
-    fields.cover_url, fields.artist_or_director,
-    fields.notes, fields.state, fields.watched_or_listened ? 1 : 0,
-    fields.label,
-    asJson(fields.tracklist),
-    fields.duration_total_sec, fields.vinyl_format,
-    fields.synopsis, fields.duration_min,
-    asJson(fields.cast_list),
-    fields.language, fields.subtitles, fields.extras,
-    fields.catalog_no ?? null, fields.country ?? null, asJson(fields.styles),
-    fields.barcode ?? null, fields.original_year ?? null, fields.format_detail ?? null,
-    asJson(fields.credits),
-    typeof fields.community === 'string' ? fields.community : (fields.community ? JSON.stringify(fields.community) : null),
-    asJson(fields.videos),
-    fields.description ?? null, fields.artist_bio ?? null,
-    fields.discogs_id ?? null, fields.back_cover_url ?? null,
-    req.params.id,
-  );
+  try {
+    updateStmt.run(...UPDATABLE.map(c => c.read(fields)), req.params.id);
+  } catch (err) {
+    // Sans ça, Express renvoie sa page HTML d'erreur et le client n'affiche
+    // qu'un message générique — c'est ce qui a masqué ce défaut longtemps.
+    return res.status(500).json({ error: (err as Error).message });
+  }
 
   const updated = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
   res.json(parseItem(updated));
