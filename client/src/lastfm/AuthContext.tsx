@@ -1,8 +1,5 @@
-// Connexion Last.fm — disponible partout, bloquante nulle part.
-//
-// ScrobblerVari plaçait un <Navigate to="/login"> devant toute l'application :
-// il fallait un compte Last.fm pour consulter sa propre collection de DVD.
-// Ici la connexion ne conditionne qu'une seule chose, l'envoi vers Last.fm.
+// Connexion Last.fm — disponible partout, bloquante nulle part : elle ne
+// conditionne que l'envoi vers Last.fm, jamais la consultation de la collection.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { fetchStatus, logout as apiLogout, type LastFmStatus } from './api';

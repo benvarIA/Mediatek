@@ -1,15 +1,9 @@
-// Ordonnanceur de scrobbles.
+// Ordonnanceur de scrobbles. Il tourne avec le serveur, pas avec le front :
+// la file avance navigateur fermé.
 //
-// Il vit dans le serveur Express, pas dans le serveur de développement Vite.
-// C'est la correction d'un défaut de fond de ScrobblerVari : la boucle y était
-// déclarée dans `configureServer()` d'un plugin Vite, donc la file gelait en
-// silence dès que le front était arrêté.
-//
-// Espacement des pistes : une piste part quand la précédente est censée être
-// finie, c'est-à-dire après sa propre durée. ScrobblerVari utilisait un
-// intervalle fixe de 20 à 40 s, ce qui envoyait un 33 tours entier en quatre
-// minutes et fabriquait un historique faux. La durée reste le repli aléatoire
-// quand le pressage ne la fournit pas (fréquent sur les vinyles Discogs).
+// Une piste part quand la précédente est censée être finie, donc après sa
+// propre durée. Quand le pressage ne la donne pas — fréquent sur les vinyles
+// Discogs — un repli est tiré une seule fois puis figé en base.
 
 import crypto from 'crypto';
 import db from './db';
@@ -196,7 +190,7 @@ const updTrackDone = db.prepare('UPDATE scrobble_track SET status = ?, scrobbled
 
 let ticking = false;
 
-export async function tick(): Promise<void> {
+async function tick(): Promise<void> {
   if (ticking) return;
   ticking = true;
   try {
@@ -231,8 +225,6 @@ export async function tick(): Promise<void> {
   }
 }
 
-let timer: NodeJS.Timeout | null = null;
-
 /**
  * Au démarrage, tout ce qui était en attente est replanifié séquentiellement à
  * partir de maintenant. Sans ça, un serveur arrêté deux heures enverrait au
@@ -249,12 +241,7 @@ export function start(): void {
   }
   if (replanned) console.log(`[scrobbler] ${replanned} album(s) replanifié(s) depuis maintenant`);
 
-  timer = setInterval(() => void tick(), TICK_MS);
-  timer.unref?.();
+  setInterval(() => void tick(), TICK_MS).unref?.();
   void tick();
 }
 
-export function stop(): void {
-  if (timer) clearInterval(timer);
-  timer = null;
-}

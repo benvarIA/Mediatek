@@ -1,10 +1,7 @@
-// Accès à l'API Last.fm — entièrement côté serveur.
-//
-// ScrobblerVari signait ses appels dans le navigateur, ce qui obligeait à
-// livrer le *secret* Last.fm dans le bundle client. Ici le secret ne quitte
-// jamais le serveur : le client demande une URL d'autorisation, Last.fm le
-// renvoie avec un jeton, le serveur échange ce jeton contre une clé de session
-// et la garde. Le navigateur ne voit ni le secret, ni la clé de session.
+// Accès à l'API Last.fm — entièrement côté serveur, pour que le *secret* ne
+// soit jamais livré dans le bundle client : le navigateur demande une URL
+// d'autorisation, renvoie le jeton, et le serveur seul échange ce jeton contre
+// la clé de session, qu'il garde.
 
 import crypto from 'crypto';
 import fs from 'fs';

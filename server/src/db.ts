@@ -1,5 +1,4 @@
 import Database from 'better-sqlite3';
-import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
@@ -76,9 +75,8 @@ for (const [col, def] of Object.entries(EXTRA_COLUMNS)) {
 }
 
 // --- File de scrobble + liste d'artistes à retirer -------------------------
-// Reprises de ScrobblerVari, qui les gardait dans des fichiers JSON. En base,
-// elles deviennent atomiques : l'ordonnanceur écrit toutes les 5 s pendant que
-// l'API lit, et un fichier JSON réécrit en entier perdait des mises à jour.
+// En base plutôt qu'en JSON : l'ordonnanceur écrit toutes les 5 s pendant que
+// l'API lit, et un fichier réécrit en entier perdrait des mises à jour.
 db.exec(`
   CREATE TABLE IF NOT EXISTS scrobble_album (
     id TEXT PRIMARY KEY,
@@ -119,78 +117,5 @@ db.exec(`
     added_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
-
-// --- Reprise unique des JSON de ScrobblerVari -----------------------------
-// Ne s'exécute que si la table est vide et que le fichier existe. Le fichier
-// est ensuite suffixé `.migrated` pour que la reprise ne rejoue jamais.
-function importOnce(file: string, isEmpty: () => boolean, load: (raw: any) => void) {
-  const full = path.join(DATA_DIR, file);
-  if (!fs.existsSync(full) || !isEmpty()) return;
-  try {
-    load(JSON.parse(fs.readFileSync(full, 'utf-8')));
-    fs.renameSync(full, `${full}.migrated`);
-    console.log(`[db] ${file} repris depuis ScrobblerVari`);
-  } catch (err) {
-    console.error(`[db] reprise de ${file} impossible :`, (err as Error).message);
-  }
-}
-
-const countAlbums = db.prepare('SELECT COUNT(*) AS n FROM scrobble_album');
-const countBlacklist = db.prepare('SELECT COUNT(*) AS n FROM blacklist');
-
-importOnce(
-  'vinyl-queue.json',
-  () => (countAlbums.get() as { n: number }).n === 0,
-  (items: any[]) => {
-    const insAlbum = db.prepare(
-      `INSERT INTO scrobble_album (id, artist, album, image, status, added_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-    );
-    const insTrack = db.prepare(
-      `INSERT INTO scrobble_track (album_id, position, title, duration, span, status, scrobble_at, scrobbled_at, error)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    );
-    db.transaction(() => {
-      for (const it of items) {
-        if (!it?.id || !it.artist || !it.album) continue;
-        insAlbum.run(
-          it.id, it.artist, it.album, it.image ?? '',
-          ['active', 'done', 'cancelled'].includes(it.status) ? it.status : 'done',
-          it.addedAt ?? new Date().toISOString(),
-        );
-        (it.tracks ?? []).forEach((t: any, i: number) => {
-          const duration = t.duration ?? null;
-          insTrack.run(
-            it.id, i + 1, String(t.title ?? ''), duration,
-            duration && duration > 0 ? duration : 180 + Math.floor(Math.random() * 120),
-            ['pending', 'done', 'error'].includes(t.status) ? t.status : 'pending',
-            t.scrobbleAt ?? null, t.scrobbledAt ?? null, t.error ?? null,
-          );
-        });
-      }
-    })();
-  },
-);
-
-importOnce(
-  'blacklist.json',
-  () => (countBlacklist.get() as { n: number }).n === 0,
-  (entries: any[]) => {
-    const ins = db.prepare(
-      `INSERT OR IGNORE INTO blacklist (id, type, artist, title, source, added_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-    );
-    db.transaction(() => {
-      for (const e of entries) {
-        if (!e?.artist) continue;
-        ins.run(
-          e.id ?? crypto.randomUUID(), e.type === 'track' ? 'track' : 'artist',
-          e.artist, e.title ?? null, e.source ?? 'manual',
-          e.addedAt ?? new Date().toISOString(),
-        );
-      }
-    })();
-  },
-);
 
 export default db;

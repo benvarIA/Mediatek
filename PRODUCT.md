@@ -84,7 +84,7 @@ personne n'a d'onglet ouvert.
 
 **Contraintes techniques**
 
-- Un seul port client et un seul port API après fusion (3005 / 8002 en production).
+- Un seul port client et un seul port API (3005 / 8002 en production).
 - L'ordonnanceur doit vivre dans le serveur Express, pas dans le serveur de développement
   Vite, sous peine de geler quand le front est arrêté.
 - Quotas Discogs : environ 60 requêtes/minute ; une fiche détaillée coûte 3 appels.
@@ -93,10 +93,8 @@ personne n'a d'onglet ouvert.
 
 **Nom**
 
-- L'application fusionnée s'appelle **Mediatek** (décidé le 7 août 2026).
-  « BibliAnalogique » ne survit pas à la fusion. Le nom joue sur « médiathèque » tout en
-  se lisant comme un bloc de marque d'équipement audio — le catalogue et la machine dans
-  un seul mot.
+- L'application s'appelle **Mediatek**. Le nom joue sur « médiathèque » tout en se lisant
+  comme un bloc de marque d'équipement audio — le catalogue et la machine dans un seul mot.
 - À savoir : MediaTek est par ailleurs un fondeur de semi-conducteurs taïwanais. Sans
   conséquence pour une app de foyer servie sur réseau privé et jamais publiée ; à
   reconsidérer uniquement si l'app devait un jour être diffusée hors du foyer.
@@ -105,10 +103,8 @@ personne n'a d'onglet ouvert.
 
 - Langue d'interface : français, tutoiement, ton de collectionneur — pas de jargon
   logiciel visible.
-- Aucune contrainte visuelle héritée. L'identité précédente (vert de bibliothèque
-  anglaise, laiton, EB Garamond, grain de papier) est explicitement remplacée et sert
-  d'anti-référence, pas d'autorité.
-- Aucun logo, aucune charte, aucun actif de marque existant à préserver.
+- Aucune contrainte visuelle héritée, aucun logo, aucune charte, aucun actif de marque
+  à préserver.
 
 ## Evidence on Hand
 

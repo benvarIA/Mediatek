@@ -1,9 +1,8 @@
 // Artistes à retirer de l'historique Last.fm.
 //
-// L'API Last.fm n'offre aucune suppression de scrobbles : la seule voie est
-// l'interface web. `scripts/delete-scrobbles.mjs` la pilote avec Playwright.
-// C'est fragile par nature — le script dépend du HTML de Last.fm — et ça reste
-// vrai indépendamment de cette fusion.
+// L'API Last.fm n'offre aucune suppression : la seule voie est l'interface web,
+// que `scripts/delete-scrobbles.mjs` pilote avec Playwright. Fragile par
+// nature — le script dépend du HTML de Last.fm.
 
 import { spawn } from 'child_process';
 import crypto from 'crypto';

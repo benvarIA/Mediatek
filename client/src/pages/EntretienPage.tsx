@@ -1,8 +1,4 @@
 // Entretien — le compte Last.fm et les artistes à retirer de l'historique.
-//
-// Ces deux blocs étaient éparpillés dans ScrobblerVari : la connexion faisait
-// une page à part qui bloquait toute l'application, le nettoyage en faisait
-// une autre, et l'identité vivait dans l'en-tête. C'est le même sujet.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { avatarOf, fetchAuthUrl, searchArtists, type ArtistSuggestion } from '../lastfm/api';

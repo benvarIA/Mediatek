@@ -536,65 +536,6 @@ router.get('/music-editorial', async (req: Request, res: Response) => {
   }
 });
 
-// POST /lookup/barcode — recherche par code-barres (MusicBrainz ou TMDB)
-router.get('/barcode/:code', async (req: Request, res: Response) => {
-  const { code } = req.params;
-
-  // Essai MusicBrainz d'abord
-  try {
-    const mbRes = await axios.get(
-      `https://musicbrainz.org/ws/2/release/?query=barcode:${code}&fmt=json`,
-      { headers: { 'User-Agent': userAgent() } }
-    );
-    const releases = mbRes.data.releases;
-    if (releases && releases.length > 0) {
-      const r = releases[0];
-      const mbid = r.id;
-      let coverUrl = null;
-      try {
-        const caaRes = await axios.get(`https://coverartarchive.org/release/${mbid}`, { maxRedirects: 5 });
-        coverUrl = caaRes.data?.images?.[0]?.thumbnails?.large || caaRes.data?.images?.[0]?.image || null;
-      } catch {}
-
-      return res.json({
-        source: 'musicbrainz',
-        type: 'music',
-        title: r.title,
-        year: r.date ? parseInt(r.date) : null,
-        artist_or_director: r['artist-credit']?.[0]?.name || null,
-        label: r['label-info']?.[0]?.label?.name || null,
-        cover_url: coverUrl,
-        mbid,
-      });
-    }
-  } catch {}
-
-  // Fallback TMDB
-  const tmdbKey = process.env.TMDB_API_KEY;
-  if (tmdbKey) {
-    try {
-      const tmdbRes = await axios.get(
-        `https://api.themoviedb.org/3/search/movie?api_key=${tmdbKey}&query=${code}`
-      );
-      const movies = tmdbRes.data.results;
-      if (movies && movies.length > 0) {
-        const m = movies[0];
-        return res.json({
-          source: 'tmdb',
-          type: 'video',
-          title: m.title,
-          year: m.release_date ? parseInt(m.release_date) : null,
-          synopsis: m.overview,
-          cover_url: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
-          tmdb_id: m.id,
-        });
-      }
-    } catch {}
-  }
-
-  res.status(404).json({ error: 'Rien trouvé pour ce code-barres' });
-});
-
 // GET /lookup/music?q=... — recherche MusicBrainz
 router.get('/music', async (req: Request, res: Response) => {
   const { q } = req.query;

@@ -13,11 +13,6 @@ router.get('/queue', (_req, res) => {
   });
 });
 
-router.get('/queue/:id', (req, res) => {
-  const album = getAlbum(req.params.id);
-  if (!album) return res.status(404).json({ error: 'Album introuvable dans la file.' });
-  res.json(album);
-});
 
 /** Poser un disque sur la platine. */
 router.post('/queue', async (req, res) => {

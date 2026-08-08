@@ -1,9 +1,6 @@
-// Accès Last.fm — toujours via notre serveur, jamais en direct.
-//
-// ScrobblerVari appelait ws.audioscrobbler.com depuis le navigateur et signait
-// ses requêtes avec le secret Last.fm, ce qui obligeait à livrer ce secret dans
-// le bundle client. Ici le client ne connaît ni le secret, ni la clé de
-// session : il demande une URL, renvoie le jeton, et lit un statut.
+// Accès Last.fm — toujours via notre serveur, jamais en direct : le client ne
+// connaît ni le secret, ni la clé de session. Il demande une URL, renvoie le
+// jeton, et lit un statut.
 
 export interface LastFmUser {
   name: string;

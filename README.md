@@ -3,8 +3,6 @@
 Le catalogue d'une collection physique — CD, vinyles, DVD, Blu-ray — qui sait aussi
 quel disque tourne en ce moment et le fait remonter sur Last.fm, piste par piste.
 
-Anciennement **BibliAnalogique**, fusionné avec **ScrobblerVari** en août 2026.
-
 ---
 
 ## Ce que ça fait
@@ -70,7 +68,7 @@ client/  React 19 + TypeScript + Vite + React Router 7 — CSS maison, aucun fra
     pages/        rayons, saisie, fiche, surprise, entretien, callback
 server/  Express 5 + TypeScript + better-sqlite3
   src/
-    db.ts         schéma, migrations non destructives, reprise des JSON de ScrobblerVari
+    db.ts         schéma et migrations non destructives
     lastfm.ts     API Last.fm — signature, session, scrobble
     scrobbler.ts  l'ordonnanceur : il tourne avec le serveur, pas avec le front
     routes/       items, lookup, scrobble, lastfm, blacklist
@@ -86,8 +84,8 @@ Quand le pressage ne fournit pas la durée — fréquent sur les vinyles Discogs
 de 3 à 5 minutes est tiré **une fois** et figé en base : sans ça l'heure de fin annoncée
 changerait à chaque lecture.
 
-La boucle vit dans le serveur Express. Dans ScrobblerVari elle était déclarée dans un
-plugin Vite, ce qui gelait la file en silence dès que le front s'arrêtait.
+La boucle vit dans le serveur Express, pas dans le front : la file avance navigateur
+fermé.
 
 Au démarrage, tout ce qui était en attente est replanifié séquentiellement à partir de
 maintenant : un serveur arrêté deux heures n'envoie pas au réveil toutes les pistes en
@@ -101,41 +99,21 @@ et ses interdits. La vérité produit est dans [`PRODUCT.md`](PRODUCT.md).
 
 ## Mise en production
 
-La prod tourne sur le Mac Mini (`100.117.225.90`). Elle fait encore tourner
-**trois** processus : le client `:3005`, l'API `:8002`, et l'ancien ScrobblerVari
-`:3008`. La bascule retire le troisième — **dans cet ordre**, sinon le bouton scrobble
-de la version en place casse entre les deux étapes :
+La prod tourne sur le Mac Mini (`100.117.225.90`) : client `:3005`, API `:8002`.
 
 ```bash
-# 1. depuis ce poste, une fois les changements poussés
-git push
-
-# 2. sur le Mac Mini
+git push                                              # depuis ce poste
 ssh benvari@100.117.225.90
 cd /Users/benvari/Apps/MAISON/BibliAnalogique && git pull origin main
-cp ~/Apps/MAISON/ScrobblerVari/scrobblervari/.env.local /tmp/lastfm.env   # les clés
-# → reporter LASTFM_API_KEY / LASTFM_SECRET / LASTFM_USERNAME dans server/.env.local
-#   (sans le préfixe VITE_), puis retirer SCROBBLER_URL qui ne sert plus
-npm run install:all && (redémarrer l'app depuis App Manager)
-
-# 3. seulement une fois Mediatek vérifié : retirer l'ancien
-#    - arrêter scrobblervari depuis App Manager (:3008)
-#    - retirer son entrée de App-Manager-V3/data/apps.json
+npm run install:all                                   # puis relancer depuis App Manager
 ```
 
-Deux points à traiter à la main sur le Mac Mini, hors périmètre de ce dépôt :
-
-- **Une entrée de crontab morte** appelle `scripts/clean.mjs` toutes les 6 heures depuis
-  `/Volumes/NAS/MAIN CODEX PROJECTS/ScrobblerVari/…`, un chemin qui n'existe plus. Elle
-  échoue en silence depuis longtemps et le script a été abandonné à la fusion :
-  `crontab -e`, supprimer la ligne.
-- **La bascule doit se faire platine vide.** Un album en cours au moment du `git pull`
-  serait perdu : la reprise depuis les JSON ne s'exécute qu'une fois, et seulement si les
-  tables sont vides.
+`server/data/` n'est pas suivi par git : la base, la session Last.fm et les cookies
+survivent au `git pull`. Ne remets jamais ce dossier sous suivi — un fichier qu'un commit
+dé-suit est **supprimé du disque** chez celui qui pull.
 
 ## Limites connues
 
 - La suppression d'artistes sur Last.fm pilote le site web avec Playwright : l'API n'offre
   aucune suppression. C'est fragile par construction, le HTML de Last.fm peut changer.
 - `TMDB_API_KEY` n'a jamais été renseignée : le lookup vidéo est inopérant.
-- Pas de statistiques, pas d'import Spotify — retirés lors de la fusion.
