@@ -50,7 +50,6 @@ LASTFM_USERNAME=…      # utilisé par la suppression d'artistes
 `client/.env.local` — facultatif :
 
 ```env
-VITE_AMELIORATOR_URL=http://…:3010   # widget de remontées ; absent, il ne charge pas
 ```
 
 Le **secret Last.fm ne quitte jamais le serveur** : le client demande une URL
