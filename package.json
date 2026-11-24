@@ -6,6 +6,10 @@
     "dev": "concurrently -k -n CLIENT,API -c magenta,blue \"npm:dev:client\" \"npm:dev:api\"",
     "dev:client": "npm --prefix client run dev",
     "dev:api": "npm --prefix server run dev",
+    "build": "npm --prefix client run build && npm --prefix server rebuild better-sqlite3 && ./server/node_modules/.bin/playwright install chromium",
+    "start": "concurrently -k -n CLIENT,API -c magenta,blue \"npm:start:client\" \"npm:start:api\"",
+    "start:client": "npm --prefix client run preview",
+    "start:api": "npm --prefix server run start",
     "install:all": "npm install && npm --prefix client install && npm --prefix server install"
   },
   "devDependencies": {

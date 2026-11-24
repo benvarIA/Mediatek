@@ -47,7 +47,7 @@ typography:
     letterSpacing: "0.02em"
 ---
 
-<!-- SEED: monde établi avec l'utilisateur avant implémentation ; relancer /impeccable document une fois le code écrit pour extraire les vrais tokens et générer le sidecar. -->
+<!-- SEED: monde établi avec l'utilisateur avant implémentation. -->
 
 # Design System: Mediatek
 
